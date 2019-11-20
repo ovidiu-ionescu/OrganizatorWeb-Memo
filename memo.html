@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="/org-manifest.json">
+    <script src="/memo-router.js"></script>
+    <script type="module">
+      import "/memo-editor.js";
+    </script>
+    <script type="text/javascript"></script>
+    <style type="text/css">
+      html {
+        height: 100%;
+        padding: 0;
+        margin: 0;
+        border: 0;
+      }
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        font-size: 16px;
+        font-family: Roboto, sans-serif;
+        background-color: black;
+        color: white;
+      }
+      main {
+        height: 100%;
+        display: flex;
+        flex-flow: column;
+        padding: 5px;
+      }
+      memo-editor {
+        flex: 1;
+      }
+
+      section {
+        flex: 1;
+        display: flex;
+        flex-flow: column;
+      }
+      #memoTitlesList a {
+        padding: 5px;
+      }
+      input[type='search'] {
+        font-size: 16px;
+      }
+      #search_button {
+        vertical-align: middle;
+      }
+      a {
+        color: steelblue;
+      }
+    </style>
+  </head>
+  <body onload="handleMemo()">
+    <main>
+      <section id="singleMemo"><memo-editor id="editor"></memo-editor></section>
+      <section id="memoTitles">
+        <nav>
+          <form>
+            <input type="search" id="searchCriteria" autocorrect="off" autocapitalize="none"/>
+            <image src="/images/ic_search_48px.svg"
+              id="search_button"
+              onclick="searchMemos()"
+            >
+            <span style="display:inline-block; width: 48px;">&nbsp;</span>
+            <a href="/memo/new">New</a>
+          </form>
+        </nav>
+        <side id="memoTitlesList"></side>
+      </section>
+    </main>
+  </body>
+</html>

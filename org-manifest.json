@@ -1,0 +1,12 @@
+{
+  "short_name": "Organizator",
+  "name": "Organizator Memos",
+  "icons": {
+    "48": "/images/tulip-blue.svg",
+    "96": "/images/tulip-blue.svg",
+    "192": "/images/tulip-blue.svg"
+  },
+  "start_url": "/memo/",
+  "display": "browser",
+  "scope": "*"
+}

@@ -28,6 +28,11 @@ const template = `
         display: flex;
         flex: 1;
       }
+      #editing {
+        display: flex;
+        flex-flow: column;
+        flex: 1;
+      }
       #source {
         resize: none;
         width: 100%;
@@ -35,7 +40,6 @@ const template = `
         padding: 5px;
         overflow: scroll;
         box-sizing: border-box;
-        display: none;
         flex: 1;
         font-size: 16px;
       }
@@ -121,14 +125,16 @@ const template = `
     <img id="decrypt_button" src="/images/ic_lock_open_48px.svg">
     <img id="encrypt_button" src="/images/ic_lock_48px.svg">
     <img id="edit_button" src="/images/ic_create_48px.svg">
-    <img id="crypto_button" src="/images/ic_insert_comment_48px.svg">
-    <span style="display: inline-block; width: 48px;"></span>
-    <img id="save_button" src="/images/ic_save_48px.svg" style="display: none">
     </nav>
     <!-- <img id="expand_img" src="/images/ic_expand_more_48px.svg"> -->
     <div id="presentation">Loading...</div>
-    <div id="editing">
+    <div id="editing" style="display: none">
     <nav id="edit_toolbar">
+      <img id="crypto_button" src="/images/ic_insert_comment_48px.svg">
+      <img id="today_button" src="/images/ic_today_48px.svg">
+      <img id="link_button" src="/images/ic_link_48px.svg">
+      <span style="display: inline-block; width: 48px;"></span>
+      <img id="save_button" src="/images/ic_save_48px.svg" >
     </nav>
     <textarea id="source" autocomplete="off" ></textarea>
     </div>
@@ -201,15 +207,13 @@ class MemoEditor extends HTMLElement {
     this.$.edit_button.addEventListener('click', () => {
       if(this._edit) {
         this.$.presentation.style.display = 'block';
-        this.$.source.style.display = 'none';
+        this.$.editing.style.display = 'none';
         this._edit = false;
-        this.$.save_button.style.display = 'none';
         this._display_markdown();
 
       } else {
         this.$.presentation.style.display = 'none';
-        this.$.save_button.style.display = '';
-        this.$.source.style.display = 'block';
+        this.$.editing.style.display = '';
         this._edit = true;
       }
     });
@@ -221,17 +225,52 @@ class MemoEditor extends HTMLElement {
       const end_quote = '\u300d';
 
       const start_offset = this.$.source.selectionStart;
-      const end_offset = this.$.source.selectionEnd + 1;
+      const end_offset = this.$.source.selectionEnd;
       let s = this.$.source.value
-      s = s.slice(0, start_offset) + start_quote + s.slice(start_offset);
       s = s.slice(0, end_offset) + end_quote + s.slice(end_offset);
+      s = s.slice(0, start_offset) + start_quote + s.slice(start_offset);
        this.$.source.value = s;
+    });
+
+    this.$.today_button.addEventListener('click', () => {
+      const today = (new Date()).toISOString().substring(0, 10);
+      const start_offset = this.$.source.selectionStart;
+      let s = this.$.source.value;
+      s = s.slice(0, start_offset) + `\n_${today}_  \n\n\n` + s.slice(start_offset);
+      this.$.source.value = s;
+    });
+
+    this.$.link_button.addEventListener('click', async () => {
+      
+      const start_offset = this.$.source.selectionStart;
+      const end_offset = this.$.source.selectionEnd;
+      let text = '';
+      // Can we read the clipboard content?
+      // if(start_offset === end_offset) {
+      //   text = await navigator.clipboard.readText();
+      // }
+
+      let s = this.$.source.value;
+      s = s.slice(0, end_offset) + ')' + s.slice(end_offset);
+      s = s.slice(0, start_offset) + `[](${text}` + s.slice(start_offset);
+      this.$.source.value = s;
     });
 
     this.$.save_button.addEventListener('click', () => { 
       this.save();
     });
-  }
+
+    // pasting links
+    this.$.source.addEventListener('paste', event => {
+      const text = event.clipboardData.getData('text/plain');
+      if(!text.startsWith('http://') && !text.startsWith('https://')) return;
+      const editor = this.$.source;
+      event.preventDefault();
+      const link_text = editor.value.slice(0, editor.selectionStart) + `[Link](${text})` + editor.value.slice(editor.selectionEnd);
+      editor.value = link_text;
+    });
+
+  } // end of initialize  
 
   _resizeTextArea() {
     //console.log(this.$.source.scrollHeight, this.$.source.style.height);
@@ -287,6 +326,8 @@ class MemoEditor extends HTMLElement {
       }
       src = memo_encrypt(this.$.source.value, this.password, (+ new Date()));
     }
+    // save to local storage in case stuff fails
+
     const memogroup = this._memogroup ? `group_id=${this._memogroup}&` : '';
     const memoId = ('' + this._memoId) ? `memoId=${this._memoId}&` : ''; 
     const text = `text=${encodeURIComponent(src)}&`;

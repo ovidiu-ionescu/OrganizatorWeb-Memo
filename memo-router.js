@@ -81,6 +81,19 @@ async function loadMemo() {
   //console.log(path);
   const m = path.match(/\/memo\/(\d+)/);
   const id = m ? m[1] : 19;
+  // check local storage for memo
+  const memo_string = localStorage.getItem(`memo_${id}`);
+  if(memo_string) try {
+    const memo = JSON.parse(memo_string);
+    const editor = document.getElementById("editor");
+    editor.memoId = memo.id;
+    editor.memogroup = memo.memogroup;
+    editor.value = memo.text;
+    return;
+  } catch(e) {
+    console.error('Failed to get memo from local storage', e);
+  }
+
   const response = await fetch(
     `/organizator/memo/${id}?request.preventCache=${+new Date()}`,
     options

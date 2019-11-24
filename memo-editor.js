@@ -185,23 +185,36 @@ class MemoEditor extends HTMLElement {
     this.$.done_password.addEventListener('click', () => {
       this.password = this.$.password.value;
       this.$.modal_password.style.display = 'none';
-      if(this._savePending) {
-        this._savePending = false;
-        this.save();
+      const then = this.$.password.then;
+      this.$.password.then = undefined
+      if (then) {
+        const pwd = this.$.password.value;
+        if(pwd) {
+          then.resolve(pwd);
+        } else  {
+          then.reject('Empty password');
+        }
       }
     });
 
     this.$.cancel_password.addEventListener('click', () => {
       this.$.modal_password.style.display = 'none';
-      this._savePending = false;
+      const then = this.$.password.then;
+      this.$.password.then = undefined
+
+      if(then) {
+        then.reject('Refused to give password');
+      }
     });
 
     this.$.decrypt_button.addEventListener('click', () => {
       this.value = memo_decrypt(this.$.source.value, this.password);
     });
 
-    this.$.encrypt_button.addEventListener('click', () => {
-      this.value  = memo_encrypt(this.$.source.value, this.password, (+ new Date()));
+    this.$.encrypt_button.addEventListener('click', async () => {
+      const encrypted_source = await this._encrypt();
+      this.value = encrypted_source;
+      this.save_to_local(encrypted_source);
     });
 
     this.$.edit_button.addEventListener('click', () => {
@@ -241,7 +254,6 @@ class MemoEditor extends HTMLElement {
     });
 
     this.$.link_button.addEventListener('click', async () => {
-      
       const start_offset = this.$.source.selectionStart;
       const end_offset = this.$.source.selectionEnd;
       let text = '';
@@ -316,18 +328,56 @@ class MemoEditor extends HTMLElement {
     if(this.isConnected) this._resizeTextArea();
   }
 
-  async save() {
+  _get_password() {
+    if(this.$.password.value) {
+      return Promise.resolve(this.$.password.value);
+    }
+    return new Promise((resolve, reject) => {
+      this.$.password.then = {resolve, reject};
+      this.$.modal_password.style.display = 'flex';
+    });
+  }
+
+  async _encrypt() {
     let src = this.$.source.value;
     if(src.indexOf('\u300c') > -1) {
-      if(!this.password) {
-        this._savePending = true;
-        this.$.password_button.click();
-        return;
-      }
-      src = memo_encrypt(this.$.source.value, this.password, (+ new Date()));
+      const password = await this._get_password();
+      return memo_encrypt(this.$.source.value, password, (+ new Date()));
+    } else {
+      return src;
     }
-    // save to local storage in case stuff fails
+  }
 
+  save() {
+    this._encrypt()
+    .then(this.save_to_local.bind(this))
+    .then(this.save_to_server.bind(this));
+  }
+
+  /**
+   * Save the memo body to local storage
+   * @param {String} src
+   * @returns {String} same as input so it can be chained
+   */
+  save_to_local(src) {
+    const memo = {
+      id: this._memoId,
+      text: src,
+      memogroup: {
+        id: this._memogroup
+      },
+      timestamp: (+ new Date)
+    }
+    const key = this._memoId || 'new';
+    localStorage.setItem(`memo_${key}`, JSON.stringify(memo));
+    return Promise.resolve(src);
+  }
+  /**
+   * Persist on the server. This will be chained after validation,
+   * so we can't save secret values in clear
+   * @param {String} src body of the memo
+   */
+  async save_to_server(src) {
     const memogroup = this._memogroup ? `group_id=${this._memogroup}&` : '';
     const memoId = ('' + this._memoId) ? `memoId=${this._memoId}&` : ''; 
     const text = `text=${encodeURIComponent(src)}&`;
@@ -364,6 +414,7 @@ class MemoEditor extends HTMLElement {
         this.$.status.innerText = `Saved at ${new Date()}`;
       }
     }
+
   }
 
   new() {

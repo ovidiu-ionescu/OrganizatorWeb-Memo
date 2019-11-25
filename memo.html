@@ -62,18 +62,19 @@
       <section id="singleMemo"><memo-editor id="editor"></memo-editor></section>
       <section id="memoTitles">
         <nav>
-          <form>
-            <input type="search" id="searchCriteria" autocorrect="off" autocapitalize="none"/>
+            <input type="search" id="searchCriteria" autocorrect="off" autocapitalize="none" 
+              onkeyup="(e => {if(e.keyCode === 13) searchMemos()})(event)"/>
             <image src="/images/ic_search_48px.svg"
               id="search_button"
               onclick="searchMemos()"
             >
             <span style="display:inline-block; width: 48px;">&nbsp;</span>
             <a href="/memo/new">New</a>
-          </form>
         </nav>
         <side id="memoTitlesList"></side>
       </section>
     </main>
   </body>
 </html>
+
+<!-- e => { console.log(e.keyCode); if(e.keyCode === 13) searchMemos() }-->

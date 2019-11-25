@@ -7,17 +7,17 @@ import init, {
 } from "./pkg/concatenate.js";
 
 let WASM_LOADED = false;
-const WASM_LOADED_EVENT = 'memo_wasm_loaded';
+const WASM_LOADED_EVENT = "memo_wasm_loaded";
 
 const loadWasm = async () => {
-  if(WASM_LOADED) return;
+  if (WASM_LOADED) return;
   await init();
   WASM_LOADED = true;
 
   let event = new Event(WASM_LOADED_EVENT);
   // console.log('wasm loaded, dispatch an event');
   document.dispatchEvent(event);
-}
+};
 
 loadWasm();
 
@@ -160,13 +160,14 @@ class MemoEditor extends HTMLElement {
   }
 
   async initialize() {
-    
-    const shadow = this.attachShadow({ mode: 'open' });
+    const shadow = this.attachShadow({ mode: "open" });
     shadow.innerHTML = template;
 
     // build a cache of elements with an id
     this.$ = {};
-    shadow.querySelectorAll('[id]').forEach((e) => this.$[e.getAttribute('id')] = e);
+    shadow
+      .querySelectorAll("[id]")
+      .forEach(e => (this.$[e.getAttribute("id")] = e));
 
     // this.$.source.style.display = 'none';
     // this.$.source.addEventListener('input', () => {
@@ -176,119 +177,123 @@ class MemoEditor extends HTMLElement {
     // this.$.source.addEventListener('change', () => this.value = this.$.source.value);
 
     // show the password dialog
-    this.$.password_button.addEventListener('click', () => {
+    this.$.password_button.addEventListener("click", () => {
       //this.$.password_dialog.style.display = this.$.password_dialog.style.display === 'none' ? 'table' : 'none';
-      this.$.modal_password.style.display = 'flex';
+      this.$.modal_password.style.display = "flex";
     });
 
     // collect the password
-    this.$.done_password.addEventListener('click', () => {
+    this.$.done_password.addEventListener("click", () => {
       this.password = this.$.password.value;
-      this.$.modal_password.style.display = 'none';
+      this.$.modal_password.style.display = "none";
       const then = this.$.password.then;
-      this.$.password.then = undefined
+      this.$.password.then = undefined;
       if (then) {
         const pwd = this.$.password.value;
-        if(pwd) {
+        if (pwd) {
           then.resolve(pwd);
-        } else  {
-          then.reject('Empty password');
+        } else {
+          then.reject("Empty password");
         }
       }
     });
 
-    this.$.cancel_password.addEventListener('click', () => {
-      this.$.modal_password.style.display = 'none';
+    this.$.cancel_password.addEventListener("click", () => {
+      this.$.modal_password.style.display = "none";
       const then = this.$.password.then;
-      this.$.password.then = undefined
+      this.$.password.then = undefined;
 
-      if(then) {
-        then.reject('Refused to give password');
+      if (then) {
+        then.reject("Refused to give password");
       }
     });
 
-    this.$.decrypt_button.addEventListener('click', () => {
+    this.$.decrypt_button.addEventListener("click", () => {
       this.value = memo_decrypt(this.$.source.value, this.password);
     });
 
-    this.$.encrypt_button.addEventListener('click', async () => {
+    this.$.encrypt_button.addEventListener("click", async () => {
       const encrypted_source = await this._encrypt();
       this.value = encrypted_source;
       this.save_to_local(encrypted_source);
     });
 
-    this.$.edit_button.addEventListener('click', () => {
-      if(this._edit) {
-        this.$.presentation.style.display = 'block';
-        this.$.editing.style.display = 'none';
+    this.$.edit_button.addEventListener("click", () => {
+      if (this._edit) {
+        this.$.presentation.style.display = "block";
+        this.$.editing.style.display = "none";
         this._edit = false;
         this._display_markdown();
-
       } else {
-        this.$.presentation.style.display = 'none';
-        this.$.editing.style.display = '';
+        this.$.presentation.style.display = "none";
+        this.$.editing.style.display = "";
         this._edit = true;
       }
     });
 
-    this.$.crypto_button.addEventListener('click', () => {
-      if(!this._edit) return;
+    this.$.crypto_button.addEventListener("click", () => {
+      if (!this._edit) return;
 
-      const start_quote = '\u300c';
-      const end_quote = '\u300d';
+      const start_quote = "\u300c";
+      const end_quote = "\u300d";
 
       const start_offset = this.$.source.selectionStart;
       const end_offset = this.$.source.selectionEnd;
-      let s = this.$.source.value
+      let s = this.$.source.value;
       s = s.slice(0, end_offset) + end_quote + s.slice(end_offset);
       s = s.slice(0, start_offset) + start_quote + s.slice(start_offset);
-       this.$.source.value = s;
-    });
-
-    this.$.today_button.addEventListener('click', () => {
-      const today = (new Date()).toISOString().substring(0, 10);
-      const start_offset = this.$.source.selectionStart;
-      let s = this.$.source.value;
-      s = s.slice(0, start_offset) + `\n_${today}_  \n\n\n` + s.slice(start_offset);
       this.$.source.value = s;
     });
 
-    this.$.link_button.addEventListener('click', async () => {
+    this.$.today_button.addEventListener("click", () => {
+      const today = new Date().toISOString().substring(0, 10);
+      const start_offset = this.$.source.selectionStart;
+      let s = this.$.source.value;
+      s =
+        s.slice(0, start_offset) +
+        `\n_${today}_  \n\n\n` +
+        s.slice(start_offset);
+      this.$.source.value = s;
+    });
+
+    this.$.link_button.addEventListener("click", async () => {
       const start_offset = this.$.source.selectionStart;
       const end_offset = this.$.source.selectionEnd;
-      let text = '';
+      let text = "";
       // Can we read the clipboard content?
       // if(start_offset === end_offset) {
       //   text = await navigator.clipboard.readText();
       // }
 
       let s = this.$.source.value;
-      s = s.slice(0, end_offset) + ')' + s.slice(end_offset);
+      s = s.slice(0, end_offset) + ")" + s.slice(end_offset);
       s = s.slice(0, start_offset) + `[](${text}` + s.slice(start_offset);
       this.$.source.value = s;
     });
 
-    this.$.save_button.addEventListener('click', () => { 
+    this.$.save_button.addEventListener("click", () => {
       this.save();
     });
 
     // pasting links
-    this.$.source.addEventListener('paste', event => {
-      const text = event.clipboardData.getData('text/plain');
-      if(!text.startsWith('http://') && !text.startsWith('https://')) return;
+    this.$.source.addEventListener("paste", event => {
+      const text = event.clipboardData.getData("text/plain");
+      if (!text.startsWith("http://") && !text.startsWith("https://")) return;
       const editor = this.$.source;
       event.preventDefault();
-      const link_text = editor.value.slice(0, editor.selectionStart) + `[Link](${text})` + editor.value.slice(editor.selectionEnd);
+      const link_text =
+        editor.value.slice(0, editor.selectionStart) +
+        `[Link](${text})` +
+        editor.value.slice(editor.selectionEnd);
       editor.value = link_text;
     });
-
-  } // end of initialize  
+  } // end of initialize
 
   _resizeTextArea() {
     //console.log(this.$.source.scrollHeight, this.$.source.style.height);
     let scrollHeight = this.$.source.scrollHeight;
     if (scrollHeight > 400) scrollHeight = 400;
-    this.$.source.style.height = (scrollHeight) + 'px';
+    this.$.source.style.height = scrollHeight + "px";
   }
 
   connectedCallback() {
@@ -305,12 +310,12 @@ class MemoEditor extends HTMLElement {
 
   _display_markdown() {
     let text = this.$.source.value;
-    if(!text.startsWith('#')) {
+    if (!text.startsWith("#")) {
       text = "```\n" + text + "\n```";
     }
 
     this.$.presentation.innerHTML = process_markdown(text);
-}
+  }
 
   set value(markdown) {
     this.$.source.value = markdown;
@@ -318,31 +323,31 @@ class MemoEditor extends HTMLElement {
       // console.log('process', WASM_LOADED_EVENT);
       document.removeEventListener(WASM_LOADED_EVENT, proc);
       this._display_markdown();
-    }
-    if(WASM_LOADED) {
+    };
+    if (WASM_LOADED) {
       proc();
     } else {
       // console.log('wasm not loaded, add an event listener');
       document.addEventListener(WASM_LOADED_EVENT, proc);
     }
-    if(this.isConnected) this._resizeTextArea();
+    if (this.isConnected) this._resizeTextArea();
   }
 
   _get_password() {
-    if(this.$.password.value) {
+    if (this.$.password.value) {
       return Promise.resolve(this.$.password.value);
     }
     return new Promise((resolve, reject) => {
-      this.$.password.then = {resolve, reject};
-      this.$.modal_password.style.display = 'flex';
+      this.$.password.then = { resolve, reject };
+      this.$.modal_password.style.display = "flex";
     });
   }
 
   async _encrypt() {
     let src = this.$.source.value;
-    if(src.indexOf('\u300c') > -1) {
+    if (src.indexOf("\u300c") > -1) {
       const password = await this._get_password();
-      return memo_encrypt(this.$.source.value, password, (+ new Date()));
+      return memo_encrypt(this.$.source.value, password, +new Date());
     } else {
       return src;
     }
@@ -350,8 +355,8 @@ class MemoEditor extends HTMLElement {
 
   save() {
     this._encrypt()
-    .then(this.save_to_local.bind(this))
-    .then(this.save_to_server.bind(this));
+      .then(this.save_to_local.bind(this))
+      .then(this.save_to_server.bind(this));
   }
 
   /**
@@ -366,10 +371,11 @@ class MemoEditor extends HTMLElement {
       memogroup: {
         id: this._memogroup
       },
-      timestamp: (+ new Date)
-    }
-    const key = this._memoId || 'new';
+      timestamp: +new Date()
+    };
+    const key = this._memoId || "new";
     localStorage.setItem(`memo_${key}`, JSON.stringify(memo));
+    this.$.status.innerText = `Saved locally at ${new Date()}`;
     return Promise.resolve(src);
   }
   /**
@@ -378,25 +384,25 @@ class MemoEditor extends HTMLElement {
    * @param {String} src body of the memo
    */
   async save_to_server(src) {
-    const memogroup = this._memogroup ? `group_id=${this._memogroup}&` : '';
-    const memoId = ('' + this._memoId) ? `memoId=${this._memoId}&` : ''; 
+    const memogroup = this._memogroup ? `group_id=${this._memogroup}&` : "";
+    const memoId = "" + this._memoId ? `memoId=${this._memoId}&` : "";
     const text = `text=${encodeURIComponent(src)}&`;
     const body = `${memogroup}${memoId}${text}`;
     //console.log("Saving", body);
 
     const response = await fetch("/organizator/memo/", {
-      "credentials": "include",
-      "headers": {
-        "Accept": "*/*",
+      credentials: "include",
+      headers: {
+        Accept: "*/*",
         "Content-Type": "application/x-www-form-urlencoded",
         "X-Requested-With": "XMLHttpRequest",
-        "Pragma": "no-cache",
+        Pragma: "no-cache",
         "Cache-Control": "no-cache",
         "x-organizator-client-version": "3"
-       },
-      "body": body,
-      "method": "POST",
-      "mode": "cors"
+      },
+      body: body,
+      method: "POST",
+      mode: "cors"
     });
 
     if (response.status === 401) {
@@ -406,25 +412,24 @@ class MemoEditor extends HTMLElement {
     } else if (response.status === 200) {
       const responseJson = await response.json();
       //console.log(responseJson);
-      if(!responseJson.memo) {
-        window.history.replaceState(null, '', '/memo/');
+      if (!responseJson.memo) {
+        window.history.replaceState(null, "", "/memo/");
       } else {
-       this.memoId = responseJson.memo.id;
+        this.memoId = responseJson.memo.id;
         window.history.replaceState(null, "", `/memo/${responseJson.memo.id}`);
         this.$.status.innerText = `Saved at ${new Date()}`;
       }
     }
-
   }
 
   new() {
     this.memoId = undefined;
     this.memogroup = undefined;
-    this.$.source.value = '';
+    this.$.source.value = "";
 
     this._savePending = false;
-    this.$.presentation.style.display = 'none';
-    this.$.source.style.display = 'block';
+    this.$.presentation.style.display = "none";
+    this.$.source.style.display = "block";
     this._edit = true;
   }
 }
@@ -438,4 +443,4 @@ text
 
 */
 
-customElements.define('memo-editor', MemoEditor);
+customElements.define("memo-editor", MemoEditor);

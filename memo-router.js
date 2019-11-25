@@ -83,13 +83,10 @@ async function loadMemo() {
   const id = m ? m[1] : 19;
   // check local storage for memo
   const memo_string = localStorage.getItem(`memo_${id}`);
+  let local_memo;
   if(memo_string) try {
-    const memo = JSON.parse(memo_string);
-    const editor = document.getElementById("editor");
-    editor.memoId = memo.id;
-    editor.memogroup = memo.memogroup;
-    editor.value = memo.text;
-    return;
+    local_memo = JSON.parse(memo_string);
+    set_memo_in_editor(local_memo);
   } catch(e) {
     console.error('Failed to get memo from local storage', e);
   }
@@ -105,13 +102,13 @@ async function loadMemo() {
   } else if (response.status === 200) {
     const obj = await response.json();
     const memo = obj.memo;
-    let text = `${memo.title}${memo.memotext}`.split("\r").join("");
+    memo.text = `${memo.title}${memo.memotext}`.split("\r").join("");
+    if(!local_memo || local_memo.timestamp < memo.savetime) {
+      set_memo_in_editor(memo);
+    }
     //console.log(text);
-    const editor = document.getElementById("editor");
-    editor.memoId = memo.id;
-    editor.memogroup = memo.memogroup;
-    editor.value = text;
   }
+
   /*
 console.log(response);
 const reader = response.body.getReader();
@@ -120,6 +117,13 @@ console.log(chunk);
 const text = new TextDecoder("utf-8").decode(chunk.value);
 console.log(text);
 */
+}
+
+function set_memo_in_editor(memo) {
+  const editor = document.getElementById("editor");
+  editor.memoId = memo.id;
+  editor.memogroup = memo.memogroup;
+  editor.value = memo.text;
 }
 
 async function loadMemoTitles(force_reload) {

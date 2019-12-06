@@ -221,7 +221,7 @@
                     "x-organizator-client-version": "3"
                 },
                 "referrer": "https://test.organizator.ro/login.html",
-                "body": `j_username=${username}&j_password=${password}&offsetJanuary=${offsetJanuary}&offsetJuly=${offsetJuly}`,
+                "body": `j_username=${encodeURIComponent(username)}&j_password=${encodeURIComponent(password)}&offsetJanuary=${encodeURIComponent(offsetJanuary)}&offsetJuly=${encodeURIComponent(offsetJuly)}`,
                 "method": "POST",
                 "mode": "cors"
             });

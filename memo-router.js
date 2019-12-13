@@ -1,3 +1,6 @@
+import * as db from "/indexdb.js";
+import * as memo_processing from '/memo_processing.js';
+
 const routerInterceptor = evt => {
   // check if we are trying to navigate via a href
   const target = evt.target;
@@ -15,7 +18,7 @@ const routerInterceptor = evt => {
   }
 };
 
-const handleMemo = () => {
+export const handleMemo = () => {
   if(window.location.pathname.match(/\/memo\/(\d+)/)) {
     activatePage('singleMemo');
     loadMemo();
@@ -39,6 +42,10 @@ const handleMemo = () => {
   }
 }
 
+/**
+ * Makes the name element visible and hides all others
+ * @param {*} name 
+ */
 const activatePage = (name) => {
   // console.log('Activate', name);
   [...document.querySelectorAll('section')].forEach(art => {
@@ -76,19 +83,23 @@ const postOptions = {
   "mode": "cors"
 };
 
+/**
+ * Fetches the memo in the url from local storage and server
+ */
 async function loadMemo() {
   const path = window.location.pathname;
   //console.log(path);
   const m = path.match(/\/memo\/(\d+)/);
   const id = m ? m[1] : 19;
-  // check local storage for memo
-  const memo_string = localStorage.getItem(`memo_${id}`);
+  console.log('check local storage for memo');
   let local_memo;
-  if(memo_string) try {
-    local_memo = JSON.parse(memo_string);
+  const db_memo = await db.readMemo(id);
+  console.log('Fetched this from local storage', db_memo);
+  if(db_memo) {
+    local_memo = db_memo.local;
     set_memo_in_editor(local_memo);
-  } catch(e) {
-    console.error('Failed to get memo from local storage', e);
+  } else {
+    console.log('Failed to get memo from local storage', id);
   }
 
   const response = await fetch(
@@ -102,9 +113,17 @@ async function loadMemo() {
   } else if (response.status === 200) {
     const obj = await response.json();
     const memo = obj.memo;
-    memo.text = `${memo.title}${memo.memotext}`.split("\r").join("");
+    memo_processing.normalize(memo);
     if(!local_memo || local_memo.timestamp < memo.savetime) {
+      if(local_memo) {
+        console.log('local memo was older than the server version', {local_timestamp: local_local_memo.timestamp, server_timestamp: memo.savetime });
+      } else {
+        console.log(`No cached instance of memo ${memo.id} found`)
+      }
       set_memo_in_editor(memo);
+      db.saveMemo(memo);
+    } else {
+      console.log('Local memo was newer than the server version');
     }
     //console.log(text);
   }
@@ -126,6 +145,10 @@ function set_memo_in_editor(memo) {
   editor.value = memo.text;
 }
 
+/**
+ * Fetches all memo titles from the server
+ * @param {*} force_reload if false just keep the current list
+ */
 async function loadMemoTitles(force_reload) {
   if(!force_reload) {
     const dest = document.getElementById('memoTitlesList');
@@ -151,6 +174,10 @@ async function loadMemoTitles(force_reload) {
 
 const headerStartRegex = /^#+\s+/
 
+/**
+ * Renders the list of memo titles in the DOM
+ * @param {*} responseJson 
+ */
 const displayMemoTitles = (responseJson) => {
   const dest = document.getElementById('memoTitlesList');
   dest.innerText = '';
@@ -179,8 +206,15 @@ const displayMemoTitles = (responseJson) => {
 
 }
 
-async function searchMemos() {
+/**
+ * Do a search on the server. If no criteria is present just fetch all titles
+ */
+export async function searchMemos() {
   const criteria = document.getElementById('searchCriteria').value;
+  if(!criteria) {
+    console.log('No criteria supplied, just fetch everything');
+    return loadMemoTitles(true);
+  }
 
   const response = await fetch(`/organizator/memo/search?request.preventCache=${+ new Date()}`, {
     ...postOptions,

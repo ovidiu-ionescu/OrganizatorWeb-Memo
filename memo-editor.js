@@ -1,3 +1,6 @@
+import * as db from "/indexdb.js";
+import * as pa from '/events.js';
+
 import init, {
   concatenate,
   encrypt,
@@ -218,16 +221,12 @@ class MemoEditor extends HTMLElement {
       this.save_to_local(encrypted_source);
     });
 
+    // Editing
     this.$.edit_button.addEventListener("click", () => {
       if (this._edit) {
-        this.$.presentation.style.display = "block";
-        this.$.editing.style.display = "none";
-        this._edit = false;
-        this._display_markdown();
+        this._show_presentation();
       } else {
-        this.$.presentation.style.display = "none";
-        this.$.editing.style.display = "";
-        this._edit = true;
+        this._show_editor();
       }
     });
 
@@ -287,7 +286,27 @@ class MemoEditor extends HTMLElement {
         editor.value.slice(editor.selectionEnd);
       editor.value = link_text;
     });
+
+    // listen to saving events
+    document.addEventListener('savingEvent', event => {
+      console.log('Received saving event', event);
+      this.$.status.innerText = event.detail;
+    });
   } // end of initialize
+
+  _show_presentation() {
+    this.$.presentation.style.display = "block";
+    this.$.editing.style.display = "none";
+    this._edit = false;
+    this._display_markdown();
+  }
+  _show_editor() {
+    this.$.presentation.style.display = "none";
+    this.$.editing.style.display = "";
+    this._edit = true;
+  }
+
+
 
   _resizeTextArea() {
     //console.log(this.$.source.scrollHeight, this.$.source.style.height);
@@ -353,6 +372,9 @@ class MemoEditor extends HTMLElement {
     }
   }
 
+  /**
+   * Save the memo to local and remote after encryption
+   */
   save() {
     this._encrypt()
       .then(this.save_to_local.bind(this))
@@ -366,7 +388,7 @@ class MemoEditor extends HTMLElement {
    */
   save_to_local(src) {
     const memo = {
-      id: this._memoId,
+      id: this._memoId || 'new',
       text: src,
       memogroup: {
         id: this._memogroup
@@ -374,9 +396,10 @@ class MemoEditor extends HTMLElement {
       timestamp: +new Date()
     };
     const key = this._memoId || "new";
-    localStorage.setItem(`memo_${key}`, JSON.stringify(memo));
-    this.$.status.innerText = `Saved locally at ${new Date()}`;
-    return Promise.resolve(src);
+    return new Promise((resolve, reject) => {
+      db.saveMemo(memo, resolve, reject);
+    });
+    // return Promise.resolve(src);
   }
   /**
    * Persist on the server. This will be chained after validation,
@@ -384,8 +407,9 @@ class MemoEditor extends HTMLElement {
    * @param {String} src body of the memo
    */
   async save_to_server(src) {
+    console.log("Saving to server");
     const memogroup = this._memogroup ? `group_id=${this._memogroup}&` : "";
-    const memoId = "" + this._memoId ? `memoId=${this._memoId}&` : "";
+    const memoId = this._memoId < 0 ? "" : `memoId=${this._memoId}&`;
     const text = `text=${encodeURIComponent(src)}&`;
     const body = `${memogroup}${memoId}${text}`;
     //console.log("Saving", body);
@@ -415,22 +439,25 @@ class MemoEditor extends HTMLElement {
       if (!responseJson.memo) {
         window.history.replaceState(null, "", "/memo/");
       } else {
-        this.memoId = responseJson.memo.id;
+        // if the previous id was temporary, delete it
+        if(this._memoId < 0) {
+          db.deleteMemo(this._memoId);
+        }
+        this._memoId = responseJson.memo.id;
         window.history.replaceState(null, "", `/memo/${responseJson.memo.id}`);
+
         this.$.status.innerText = `Saved at ${new Date()}`;
       }
     }
   }
 
   new() {
-    this.memoId = undefined;
+    this.memoId = - (+ new Date);
     this.memogroup = undefined;
     this.$.source.value = "";
 
     this._savePending = false;
-    this.$.presentation.style.display = "none";
-    this.$.source.style.display = "block";
-    this._edit = true;
+    this._show_editor();
   }
 }
 

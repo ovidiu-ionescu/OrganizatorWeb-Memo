@@ -1,5 +1,6 @@
 import * as db from "/indexdb.js";
-import * as pa from '/events.js';
+import konsole from './console_log.js';
+import * as server_comm from './server_comm.js';
 
 import init, {
   concatenate,
@@ -135,9 +136,11 @@ const template = `
     <nav id="edit_toolbar">
       <img id="crypto_button" src="/images/ic_insert_comment_48px.svg">
       <img id="today_button" src="/images/ic_today_48px.svg">
+      <img id="checkbox_button" src="/images/ic_done_48px.svg">
       <img id="link_button" src="/images/ic_link_48px.svg">
       <span style="display: inline-block; width: 48px;"></span>
       <img id="save_button" src="/images/ic_save_48px.svg" >
+      <img id="save_all_button" src="/images/save_alt-24px.svg" >
     </nav>
     <textarea id="source" autocomplete="off" ></textarea>
     </div>
@@ -218,7 +221,7 @@ class MemoEditor extends HTMLElement {
     this.$.encrypt_button.addEventListener("click", async () => {
       const encrypted_source = await this._encrypt();
       this.value = encrypted_source;
-      this.save_to_local(encrypted_source);
+      db.saveLocalOnly(await this.get_memo());
     });
 
     // Editing
@@ -255,6 +258,13 @@ class MemoEditor extends HTMLElement {
       this.$.source.value = s;
     });
 
+    this.$.checkbox_button.addEventListener('click', async () => {
+      const start_offset = this.$.source.selectionStart;
+      let s = this.$.source.value;
+      s = s.slice(0, start_offset) + "- [ ] " + s.slice(start_offset);
+      this.$.source.value = s;
+    });
+
     this.$.link_button.addEventListener("click", async () => {
       const start_offset = this.$.source.selectionStart;
       const end_offset = this.$.source.selectionEnd;
@@ -274,6 +284,10 @@ class MemoEditor extends HTMLElement {
       this.save();
     });
 
+    this.$.save_all_button.addEventListener('click', () => {
+      this._save_all();
+    });
+
     // pasting links
     this.$.source.addEventListener("paste", event => {
       const text = event.clipboardData.getData("text/plain");
@@ -291,6 +305,12 @@ class MemoEditor extends HTMLElement {
     document.addEventListener('savingEvent', event => {
       console.log('Received saving event', event);
       this.$.status.innerText = event.detail;
+    });
+
+    // save when the window loses focus
+    window.addEventListener('blur', async () => {
+      konsole.log('Exiting the window, trigger a local save');
+      db.saveLocalOnly(await this.get_memo());
     });
   } // end of initialize
 
@@ -434,6 +454,11 @@ class MemoEditor extends HTMLElement {
       window.location.replace("/login.html");
       return;
     } else if (response.status === 200) {
+      /*
+       * Saved successfuly, alter the environment to reflect that.
+       * Update the url to the new memo id if necessary
+       * Update the timestamp of the server memo in local cache
+       */
       const responseJson = await response.json();
       //console.log(responseJson);
       if (!responseJson.memo) {
@@ -445,29 +470,65 @@ class MemoEditor extends HTMLElement {
         }
         this._memoId = responseJson.memo.id;
         window.history.replaceState(null, "", `/memo/${responseJson.memo.id}`);
+        db.saveMemoAfterSavingToServer(responseJson.memo);
 
+        console.log('Saved on the server');
         this.$.status.innerText = `Saved at ${new Date()}`;
       }
     }
   }
 
   new() {
-    this.memoId = - (+ new Date);
+    this._memoId = - (+ new Date);
     this.memogroup = undefined;
     this.$.source.value = "";
 
     this._savePending = false;
     this._show_editor();
   }
+
+  /**
+   * Extracts a full memo structure. It is always encrypted
+   */
+  async get_memo() {
+    const encrypted_source =  await this._encrypt();
+    const result = {
+      id: this._memoId,
+      memogroup: this.memogroup,
+      text: encrypted_source
+    };
+    return result;
+  }
+
+  async _save_all() {
+    const unsaved_memos = await db.unsaved_memos();
+    konsole.log({unsaved_memos});
+    unsaved_memos
+    // save to server and get the server instance
+    let memo;
+    while(memo = unsaved_memos.pop()) {
+      const id = memo.id;
+      const server_memo = await server_comm.save_to_server(memo.local);
+      if(memo.id < 0 || !memo.text) {
+        db.delete_memo(id);
+      }
+      db.saveMemoAfterSavingToServer(server_memo);
+
+    }
+
+    // .map(async memo => ({
+    //   id:          memo.id,
+    //   server_memo: await server_comm.save_to_server(memo.local)
+    // }))
+    // remove the old memo and save the new one into local cache
+    // .forEach(async m => {
+    //   const memo = await m;
+    //   if(memo.id < 0) {
+    //     db.delete_memo(id);
+    //   }
+    //   db.saveMemoAfterSavingToServer(memo.server_memo);
+    // });
+  }
 }
-
-/*
-Save memo
-POST /memo/
-memoId
-text
-
-
-*/
 
 customElements.define("memo-editor", MemoEditor);

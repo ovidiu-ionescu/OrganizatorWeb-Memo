@@ -1,5 +1,6 @@
 import * as db from "/indexdb.js";
 import * as memo_processing from '/memo_processing.js';
+import konsole from './console_log.js';
 
 const routerInterceptor = evt => {
   // check if we are trying to navigate via a href
@@ -112,20 +113,8 @@ async function loadMemo() {
     return;
   } else if (response.status === 200) {
     const obj = await response.json();
-    const memo = obj.memo;
-    memo_processing.normalize(memo);
-    if(!local_memo || local_memo.timestamp < memo.savetime) {
-      if(local_memo) {
-        console.log('local memo was older than the server version', {local_timestamp: local_local_memo.timestamp, server_timestamp: memo.savetime });
-      } else {
-        console.log(`No cached instance of memo ${memo.id} found`)
-      }
-      set_memo_in_editor(memo);
-      db.saveMemo(memo);
-    } else {
-      console.log('Local memo was newer than the server version');
-    }
-    //console.log(text);
+    const memo = await db.saveMemoAfterFetchingFromServer(obj.memo);
+    set_memo_in_editor(memo);
   }
 
   /*
@@ -178,14 +167,26 @@ const headerStartRegex = /^#+\s+/
  * Renders the list of memo titles in the DOM
  * @param {*} responseJson 
  */
-const displayMemoTitles = (responseJson) => {
+const displayMemoTitles = async (responseJson) => {
   const dest = document.getElementById('memoTitlesList');
   dest.innerText = '';
+
+  const access_times = (await db.access_times()).reduce((a, t) => { a[t.id] = t.last_access; return a; }, {});
+  konsole.log({access_times});
   responseJson.memos.map(
     memo => ({ id: memo.id, title: memo.title.split('\r').join('')})
   )
   .map(
    memo => ({ id: memo.id, title: memo.title.replace(headerStartRegex, '')}) 
+  )
+  .map(
+    memo => ({
+      ...memo,
+      last_access: access_times[memo.id] || memo.id
+    })
+  )
+  .sort(
+    (a, b) => b.last_access - a.last_access
   )
   .map(memo => {
     const a = document.createElement('a');
@@ -194,12 +195,6 @@ const displayMemoTitles = (responseJson) => {
     a.innerText = memo.title;
     return a;
   })
-  // .map(memo => `[${memo.title}](/memo/${memo.id})`)
-  // .map(memo => {
-  //   const edi = document.createElement('memo-editor');
-  //   edi.value = memo;
-  //   return edi;
-  // })
   .forEach(memo => {
     dest.appendChild(memo);
   });

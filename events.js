@@ -4,7 +4,7 @@
  * @param {String} message 
  */
 export const sendMessageEvent = (type, message) => {
-  console.log('Status message', message);
+  console.log('Status message:', message);
   const msg = `${new Date()} - ${message}`;
   const event = new CustomEvent(type, { detail: msg});
   document.dispatchEvent(event);

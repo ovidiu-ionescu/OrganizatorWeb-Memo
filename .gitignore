@@ -2,5 +2,6 @@ pkg
 *.bk
 *.png
 Old
-
-
+build
+types
+node_modules

@@ -1,0 +1,29 @@
+{
+  "name": "organizator_memo",
+  "version": "1.0.0",
+  "description": "Web interface for memos in Organizator",
+  "main": "index.js",
+  "scripts": {
+    "build:test": "tsc --outDir build",
+    "jasmine": "karma start karma.jasmine.conf.js",
+    "mocha": "karma start karma.mocha.conf.js",
+    "_test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ovidiu Ionescu",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {},
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "jasmine-core": "^3.5.0",
+    "karma": "^4.4.1",
+    "karma-chai": "^0.1.0",
+    "karma-chrome-launcher": "^3.1.0",
+    "karma-cli": "^2.0.0",
+    "karma-firefox-launcher": "^1.2.0",
+    "karma-jasmine": "^2.0.1",
+    "karma-mocha": "^1.3.0",
+    "karma-sinon": "^1.0.5",
+    "mocha": "^6.2.2",
+    "sinon": "^7.5.0"
+  }
+}

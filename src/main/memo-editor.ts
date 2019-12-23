@@ -239,8 +239,9 @@ export class MemoEditor extends HTMLElement {
       }
     });
 
-    this.$.crypto_button.addEventListener("click", () => {
+    this.$.crypto_button.addEventListener("click", async () => {
       if (!this._edit) return;
+      await this._get_password();
 
       const start_quote = "\u300c";
       const end_quote = "\u300d";

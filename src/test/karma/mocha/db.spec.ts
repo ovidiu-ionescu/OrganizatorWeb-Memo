@@ -97,7 +97,6 @@ describe("Testing the database functions", () => {
     expect(new_memo.server).to.be.undefined;
   });
 
-
   // it('should not override the local if server is older', async () => {});
 
   it('should remove the old negative number entries when saving to server', async () => {
@@ -131,5 +130,8 @@ describe("Testing the database functions", () => {
     });
   });
 
+  it('should return null when reading a non cached memo', async () => {
+    expect(await db.read_memo(100)).to.be.null;
+  });
   // it('', async () => {});
 });

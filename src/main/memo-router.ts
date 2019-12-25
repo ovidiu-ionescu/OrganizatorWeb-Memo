@@ -1,7 +1,9 @@
 import { Memo, ServerMemo, CacheMemo, PasswordThen, ServerMemoTitle, ServerMemoList } from './memo_interfaces';
 import { MemoEditor } from './memo-editor.js';
-import * as db from "./memo_db.js";
+import * as db from './memo_db.js';
+import * as memo_processing from './memo_processing.js';
 import konsole from './console_log.js';
+import * as server_comm from './server_comm.js';
 
 const routerInterceptor = (evt) => {
   // check if we are trying to navigate via a href
@@ -21,6 +23,15 @@ const routerInterceptor = (evt) => {
 };
 
 export const handleMemo = () => {
+  // check if we got here from login
+  if(document.referrer) {
+    const url = new URL(document.referrer);
+    if(url.pathname === "/login.html") {
+      console.log("Coming from login, save everything");
+      server_comm.save_all();
+    }
+  }
+
   if(window.location.pathname.match(/\/memo\/(\d+)/)) {
     activatePage('singleMemo');
     loadMemo();
@@ -126,11 +137,9 @@ console.log(text);
 */
 }
 
-function set_memo_in_editor(memo: Memo) {
+async function set_memo_in_editor(memo: Memo) {
   const editor = <MemoEditor>(document.getElementById("editor"));
-  editor.memoId = memo.id;
-  editor.memogroup = memo.memogroup;
-  editor.value = memo.text;
+  editor.set_memo(memo);
 }
 
 /**
@@ -171,22 +180,8 @@ const displayMemoTitles = async (responseJson: ServerMemoList) => {
   dest.innerText = '';
 
   const access_times = (await db.access_times()).reduce((a, t) => { a[t.id] = t.last_access; return a; }, {});
-  konsole.log({access_times});
-  responseJson.memos.map(
-    memo => ({ id: memo.id, title: memo.title.split('\r').join('')})
-  )
-  .map(
-   memo => ({ id: memo.id, title: memo.title.replace(headerStartRegex, '')}) 
-  )
-  .map(
-    memo => ({
-      ...memo,
-      last_access: access_times[memo.id] || memo.id
-    })
-  )
-  .sort(
-    (a, b) => b.last_access - a.last_access
-  )
+
+  memo_processing.make_title_list(responseJson.memos, await db.access_times())
   .map(memo => {
     const a = document.createElement('a');
     a.style.display = 'block';

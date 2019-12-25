@@ -2,7 +2,7 @@
  * Common operations on memos
  */
 
-import { Memo, ServerMemo, CacheMemo } from './memo_interfaces';
+import { Memo, ServerMemo, CacheMemo, ServerMemoTitle, AccessTime } from './memo_interfaces';
 
 /**
  * Change the structure returned by the server into the one used by the client
@@ -89,3 +89,29 @@ export const make_cache_memo = (memo: Memo, cache_memo?: CacheMemo): CacheMemo =
     };
   }
 }
+
+const headerStartRegex = /^#+\s+/
+
+/**
+ * Sort the title list putting the most recently accessed records on top
+ * @param titles 
+ * @param access_times 
+ */
+export const make_title_list = (titles: ServerMemoTitle[], access_times: AccessTime[]): ServerMemoTitle[] => {
+  const access_times_map: Record<number, number> = access_times.reduce((a, t) => { a[t.id] = t.last_access; return a; }, {});
+  return titles.map(
+    memo => ({ ...memo, title: memo.title.split('\r').join('')})
+  )
+  .map(
+   memo => ({ ...memo, title: memo.title.replace(headerStartRegex, '')}) 
+  )
+  .map(
+    memo => ({
+      ...memo,
+      last_access: access_times_map[memo.id] || memo.id
+    })
+  )
+  .sort(
+    (a, b) => b.last_access - a.last_access
+  )
+};

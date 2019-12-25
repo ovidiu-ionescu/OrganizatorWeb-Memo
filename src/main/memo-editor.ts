@@ -122,6 +122,10 @@ const template = `
       #password {
         width: 100%;
       }
+      #edit_meta {
+        display: flex;
+        justify-content: space-between;
+      }
 
     </style>
     <div id="container">
@@ -143,6 +147,7 @@ const template = `
       <img id="save_button" src="/images/ic_save_48px.svg" >
       <img id="save_all_button" src="/images/save_alt-24px.svg" >
     </nav>
+    <div id="edit_meta"><span id="edit_memogroup"></span><span id="edit_user"></span></div>
     <textarea id="source" autocomplete="off" ></textarea>
     </div>
     <footer id="status"></footer>
@@ -160,12 +165,13 @@ const template = `
     </div>
 `;
 
-type ovidiu = HTMLElement & HTMLInputElement & PasswordThen;
+type MyElement = HTMLElement & HTMLInputElement & PasswordThen;
 export class MemoEditor extends HTMLElement {
-  private $: { [key: string]: ovidiu };
+  private $: { [key: string]: MyElement };
   private _edit: boolean;
   private _memoId: number;
   private _memogroup: IdName;
+  private _user: IdName;
 
   constructor() {
     super();
@@ -180,7 +186,7 @@ export class MemoEditor extends HTMLElement {
     this.$ = {};
     shadow
       .querySelectorAll("[id]")
-      .forEach((e: ovidiu) => {this.$[e.getAttribute("id")] = e});
+      .forEach((e: MyElement) => { this.$[e.getAttribute("id")] = e });
 
     // this.$.source.style.display = 'none';
     // this.$.source.addEventListener('input', () => {
@@ -292,7 +298,7 @@ export class MemoEditor extends HTMLElement {
     });
 
     this.$.save_all_button.addEventListener('click', () => {
-      this._save_all();
+      server_comm.save_all();
     });
 
     // pasting links
@@ -303,7 +309,7 @@ export class MemoEditor extends HTMLElement {
       event.preventDefault();
       const link_text =
         editor.value.slice(0, editor.selectionStart) +
-        `[Link](${text})` +
+        `[${new URL(text).hostname}](${text})` +
         editor.value.slice(editor.selectionEnd);
       editor.value = link_text;
     });
@@ -314,11 +320,13 @@ export class MemoEditor extends HTMLElement {
       this.$.status.innerText = (event as CustomEvent).detail;
     });
 
-    // save when the window loses focus
-    window.addEventListener('blur', async () => {
-      konsole.log('Exiting the window, trigger a local save');
-      db.save_local_only(await this.get_memo());
-    });
+    // save every time we might get rid of the page content
+    window.addEventListener('blur',         this.save_local_only);
+    window.addEventListener('beforeunload', this.save_local_only);
+    window.addEventListener('pagehide',     this.save_local_only);
+    window.addEventListener('pageshow',     this.save_local_only);
+    window.addEventListener('popstate',     this.save_local_only);
+
   } // end of initialize
 
   _show_presentation() {
@@ -422,6 +430,16 @@ export class MemoEditor extends HTMLElement {
     };
     return db.save_local_only(memo);
   }
+
+  async save_local_only(event? : Event) {
+    const cause = event && event.type || 'no event supplied';
+    if(!this._memoId) {
+      konsole.log('save_local_only, triggered by', cause, '; no memo in the editor, nothing to save');
+      return;
+    }
+    konsole.log('save_local_only, triggered by', cause);
+    db.save_local_only(await this.get_memo());
+  }
   /**
    * Persist on the server. This will be chained after validation,
    * so we can't save secret values in clear
@@ -485,39 +503,27 @@ export class MemoEditor extends HTMLElement {
   /**
    * Extracts a full memo structure. It is always encrypted
    */
-  async get_memo() {
+  async get_memo(): Promise<Memo> {
     const encrypted_source =  await this._encrypt();
     const result = {
       id: this._memoId,
       memogroup: this.memogroup,
-      text: encrypted_source
+      text: encrypted_source,
+      user: this._user,
     };
     return result;
   }
 
-  async _save_all() {
-    const unsaved_memos = await db.unsaved_memos();
-    konsole.log({unsaved_memos});
-    // save to server and get the server instance
-    for(let memo: CacheMemo; memo = unsaved_memos.pop();) {
-      const id = memo.id;
-      const server_memo = await server_comm.save_to_server(memo.local);
-      // TODO: need to take care of current URL
-      db.save_memo_after_saving_to_server(id, server_memo);
-    }
+  async set_memo(memo: Memo) {
+    konsole.log('Activating memo', memo);
+    await this.save_local_only()
 
-    // .map(async memo => ({
-    //   id:          memo.id,
-    //   server_memo: await server_comm.save_to_server(memo.local)
-    // }))
-    // remove the old memo and save the new one into local cache
-    // .forEach(async m => {
-    //   const memo = await m;
-    //   if(memo.id < 0) {
-    //     db.delete_memo(id);
-    //   }
-    //   db.saveMemoAfterSavingToServer(memo.server_memo);
-    // });
+    this._memoId = memo.id;
+    this._memogroup = memo.memogroup;
+    this._user = memo.user;
+    this.value = memo.text;
+    this.$.edit_user.innerText = memo.user && memo.user.name || '';
+    this.$.edit_memogroup.innerText = memo.memogroup && memo.memogroup.name || '';
   }
 }
 

@@ -17,6 +17,7 @@ export const get_db = () => {
     prepare_db_if_needed(request);
 
     request.onsuccess = event => {
+      konsole.log("We got a db connection");
       const db: IDBDatabase = (event.target as IDBRequest).result;
   
       db.onerror = event => {
@@ -102,7 +103,8 @@ const write_memo_with_timestamp = (transaction: IDBTransaction, db_memo: CacheMe
 export const read_memo = async (id: number) => {
   const transaction = await get_memo_write_transaction();
   await update_access_time(transaction, id);
-  return (await raw_read_memo(transaction, id)).local;
+  const cache_memo = await raw_read_memo(transaction, id);
+  return cache_memo ? cache_memo.local : null;
 }
 
 export const save_memo_after_fetching_from_server = async (server_memo: ServerMemo):Promise<Memo> => {

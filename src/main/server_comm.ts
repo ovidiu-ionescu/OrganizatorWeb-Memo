@@ -1,6 +1,6 @@
 import konsole from './console_log.js';
 import * as db from './memo_db.js';
-import { Memo, ServerMemo, CacheMemo, PasswordThen, IdName, ServerMemoTitle } from './memo_interfaces';
+import { Memo, ServerMemo, CacheMemo, PasswordThen, IdName, ServerMemoTitle } from './memo_interfaces.js';
 import * as events from './events.js';
 
 

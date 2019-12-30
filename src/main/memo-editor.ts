@@ -1,7 +1,7 @@
 import * as db from "./memo_db.js";
 import konsole from './console_log.js';
 import * as server_comm from './server_comm.js';
-import { Memo, ServerMemo, CacheMemo, PasswordThen, IdName, HasType } from './memo_interfaces';
+import { Memo, ServerMemo, CacheMemo, PasswordThen, IdName, HasType } from './memo_interfaces.js';
 import * as events from './events.js';
 import './img-inline-svg.js';
 
@@ -567,7 +567,7 @@ export class MemoEditor extends HTMLElement {
   }
 
   async set_memo(memo: Memo) {
-    konsole.log('Activating memo', memo);
+    konsole.log('Activating memo', memo.id);
 
     await this.save_local_only({type: 'set_memo'});
 

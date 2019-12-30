@@ -5,8 +5,12 @@
   "main": "index.js",
   "scripts": {
     "build:test": "tsc --outDir build",
+    "copy:html": "rsync -r src/html/ build/main",
+    "copy:images": "rsync -r images build/main/",
     "jasmine": "karma start karma.jasmine.conf.js",
     "mocha": "karma start karma.mocha.conf.js",
+    "build": "npm-run-all build:test copy:html copy:images",
+    "test": "npm-run-all build mocha",
     "_test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Ovidiu Ionescu",
@@ -24,6 +28,7 @@
     "karma-mocha": "^1.3.0",
     "karma-sinon": "^1.0.5",
     "mocha": "^6.2.2",
+    "npm-run-all": "^4.1.5",
     "sinon": "^7.5.0"
   }
 }

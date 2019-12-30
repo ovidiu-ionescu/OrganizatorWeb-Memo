@@ -1,4 +1,4 @@
-import { Memo, ServerMemo, CacheMemo, PasswordThen, ServerMemoTitle, ServerMemoList } from './memo_interfaces';
+import { Memo, ServerMemo, CacheMemo, PasswordThen, ServerMemoTitle, ServerMemoList } from './memo_interfaces.js';
 import { MemoEditor } from './memo-editor.js';
 import * as db from './memo_db.js';
 import * as memo_processing from './memo_processing.js';

@@ -1,7 +1,7 @@
-import { Memo, ServerMemo, CacheMemo, AccessTime } from '../../../main/memo_interfaces';
+import { Memo, ServerMemo, CacheMemo, AccessTime } from '../../../main/memo_interfaces.js';
 
 import * as db from '../../../main/memo_db.js';
-import { sendMessageEvent } from '../../../main/events';
+import { sendMessageEvent } from '../../../main/events.js';
 
 describe("Testing the database functions", () => {
   before(() => {
@@ -21,8 +21,8 @@ describe("Testing the database functions", () => {
   // unsaved_memos V
   // access_times V
 
-  let clock;
-  let millis;
+  let clock: Sinon.SinonFakeTimers;
+  let millis: number;
 
   beforeEach(() => {
     millis = (+ new Date);
@@ -70,7 +70,7 @@ describe("Testing the database functions", () => {
         text:      'Title\nBody',
         timestamp: 100,
       });
-    expect(saved).to.be.false;
+    expect(saved.timestamp).to.equal(100);
   });
 
   it('should appear as unsaved after a save local', async () => {
@@ -80,7 +80,7 @@ describe("Testing the database functions", () => {
         memogroup: null,
         text: 'Title\nBody2'
     });
-    expect(saved).to.be.true;
+    expect(saved.timestamp).to.be.greaterThan(0);
     let unsaved = await db.unsaved_memos();
     expect(unsaved).to.be.an('array').that.has.lengthOf(1);
   });
@@ -90,7 +90,7 @@ describe("Testing the database functions", () => {
       id: -2,
       text: 'New memo\nNew body',
     });
-    expect(saved).to.be.true;
+    expect(saved.timestamp).to.be.greaterThan(0);
     let unsaved = await db.unsaved_memos();
     expect(unsaved).to.be.an('array').that.has.lengthOf(2);
     const new_memo = unsaved.filter( m => m.id < 0)[0];

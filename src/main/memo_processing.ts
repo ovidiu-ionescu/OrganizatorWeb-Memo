@@ -4,7 +4,7 @@ import konsole from './console_log.js';
  * Common operations on memos
  */
 
-import { Memo, ServerMemo, CacheMemo, ServerMemoTitle, AccessTime } from './memo_interfaces';
+import { Memo, ServerMemo, CacheMemo, ServerMemoTitle, AccessTime } from './memo_interfaces.js';
 
 /**
  * Change the structure returned by the server into the one used by the client

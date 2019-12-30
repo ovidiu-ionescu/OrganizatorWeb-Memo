@@ -1,4 +1,4 @@
-import { Memo, ServerMemo, CacheMemo, AccessTime, UpdateMemoLogic, GenericReject } from './memo_interfaces';
+import { Memo, ServerMemo, CacheMemo, AccessTime, UpdateMemoLogic, GenericReject } from './memo_interfaces.js';
 
 import * as pa from './events.js';
 import * as memo_processing from './memo_processing.js';

@@ -1,3 +1,6 @@
+export const SAVE_ALL_FINISHED = 'saveAllFinished';
+export const SAVING_EVENT = 'savingEvent';
+
 /**
  * Emit an event containing a message
  * @param {string} type 
@@ -12,8 +15,12 @@ export const sendMessageEvent = (type: string, message: string): void => {
 
 /**
  * Emit an event containing a message for the status field
- * @param {string} message 
+ * @param message 
  */
 export const updateStatus = (message: string) => {
-  sendMessageEvent('savingEvent', message);
+  sendMessageEvent(SAVING_EVENT, message);
+}
+
+export const save_all_status = () => {
+  sendMessageEvent(SAVE_ALL_FINISHED, '');
 }

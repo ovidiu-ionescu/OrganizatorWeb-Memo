@@ -71,3 +71,7 @@ export interface UpdateMemoLogic {
     reject:  GenericReject,
   ): CacheMemo
 };
+
+export interface HasType {
+  type: string;
+}

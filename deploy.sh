@@ -5,8 +5,14 @@ DEST=/mirror/WWW/organizator/
 
 sudo rsync -av \
 memo.html \
+console_log.js \
+events.js \
+img-inline-svg.js \
+memo_db.js \
+memo_processing.js \
 memo-editor.js \
 memo-router.js \
+server_comm.js \
 login.html \
 logout.html \
 org-manifest.json \

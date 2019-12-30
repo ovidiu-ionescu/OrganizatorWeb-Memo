@@ -1,3 +1,5 @@
+import konsole from './console_log.js';
+
 /**
  * Common operations on memos
  */
@@ -29,12 +31,18 @@ export const server2local = (server_memo: ServerMemo): Memo => {
  */
 export const equal = (memo1: Memo, memo2: Memo): boolean => {
   if(!memo1 || !memo2) {
+    konsole.log(`equal: One of the memos is false`)
     return false;
   }
   if(memo1.text !== memo2.text) {
+    konsole.log(`equal: Text content different between memo ${memo1.id} and ${memo2.id}`)
     return false;
   }
 
+  if(memo1.id !== memo2.id) {
+    konsole.log(`equal: Id is different between memo ${memo1.id} and ${memo2.id}`)
+    return false;
+  }
   // TODO: ownership could also change!
   return true;
 }

@@ -17,7 +17,6 @@ export const get_db = () => {
     prepare_db_if_needed(request);
 
     request.onsuccess = event => {
-      konsole.log("We got a db connection");
       const db: IDBDatabase = (event.target as IDBRequest).result;
   
       db.onerror = event => {
@@ -81,12 +80,12 @@ const raw_read_memo = (transaction: IDBTransaction, id: number) => {
  * @param transaction 
  * @param db_memo 
  */
-const raw_write_memo = (transaction: IDBTransaction, db_memo: CacheMemo) => {
+const raw_write_memo = (transaction: IDBTransaction, db_memo: CacheMemo): Promise<CacheMemo> => {
   const memo_store = transaction.objectStore("memo");
   const request = memo_store.put(JSON.parse(JSON.stringify(db_memo)));
   return new Promise(resolve => {
     request.onsuccess = () => {
-      resolve(true);
+      resolve(db_memo);
     }
   });
 }
@@ -134,7 +133,7 @@ export const save_memo_after_fetching_from_server = async (server_memo: ServerMe
  * Updates the local cache if the memo has changed
  * @param memo 
  */
-export const save_local_only = async (memo: Memo): Promise<boolean> => {
+export const save_local_only = async (memo: Memo): Promise<Memo> => {
   const transaction = await get_memo_write_transaction();
   const db_memo = await raw_read_memo(transaction, memo.id);
 
@@ -142,15 +141,15 @@ export const save_local_only = async (memo: Memo): Promise<boolean> => {
   
   if(!db_memo) {
     // no entry in cache, new memo
-    write_memo_with_timestamp(transaction, memo_processing.make_cache_memo(memo));
-    return true
+    const new_db_memo: CacheMemo = await write_memo_with_timestamp(transaction, memo_processing.make_cache_memo(memo));
+    return new_db_memo.local;
   } else {
     if(memo_processing.equal(memo, db_memo.local)) {
       // no change, don't bother to write
-      return false;
+      return memo;
     } else {
-      await write_memo_with_timestamp(transaction, memo_processing.make_cache_memo(memo, db_memo));
-      return true;
+      const new_db_memo: CacheMemo = await write_memo_with_timestamp(transaction, memo_processing.make_cache_memo(memo, db_memo));
+      return new_db_memo.local;
     }
   }
 }

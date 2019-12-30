@@ -1,6 +1,7 @@
 import konsole from './console_log.js';
 import * as db from './memo_db.js';
-import { Memo, ServerMemo, CacheMemo, PasswordThen, IdName } from './memo_interfaces';
+import { Memo, ServerMemo, CacheMemo, PasswordThen, IdName, ServerMemoTitle } from './memo_interfaces';
+import * as events from './events.js';
 
 
 /**
@@ -48,11 +49,21 @@ export const save_all = async () => {
   // save to server and get the server instance
   for(let memo: CacheMemo; memo = unsaved_memos.pop();) {
     const id = memo.id;
+    if(memo.id > -1) {
+      // this is an existing memo, might have changed on the server since we got it
+      const server_memo = await read_memo(id);
+      if(server_memo.savetime && memo.server && memo.server.timestamp && server_memo.savetime > memo.server.timestamp) {
+        konsole.log(`we have a conflict`);
+        throw `Time conflict saving memo ${memo.id}`;
+      }
+    }
+
     const server_memo = await save_to_server(memo.local);
     // TODO: need to take care of current URL
     db.save_memo_after_saving_to_server(id, server_memo);
   }
 
+  
   // .map(async memo => ({
   //   id:          memo.id,
   //   server_memo: await server_comm.save_to_server(memo.local)
@@ -65,4 +76,31 @@ export const save_all = async () => {
   //   }
   //   db.saveMemoAfterSavingToServer(memo.server_memo);
   // });
+
+  events.save_all_status();
+}
+
+const get_options: RequestInit = {
+  credentials: "include",
+  headers: {
+    Pragma: "no-cache",
+    "Cache-Control": "no-cache",
+    "X-Requested-With": "XMLHttpRequest",
+    "x-organizator-client-version": "3"
+  },
+  method: "GET",
+  mode: "cors"
+};
+
+export const read_memo = async (id: number): Promise<ServerMemo> => {
+  const server_response = await fetch(`/organizator/memo/${id}?request.preventCache=${+new Date()}`, get_options);
+  if (server_response.status === 200) {
+    const json = await server_response.json();
+    return json.memo;
+  } else {
+    throw {
+      errorCode: server_response.status,
+      message: `Failed to fetch memo ${id}`,
+    };
+  }
 }

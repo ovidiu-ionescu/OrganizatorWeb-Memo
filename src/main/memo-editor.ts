@@ -1,7 +1,9 @@
 import * as db from "./memo_db.js";
 import konsole from './console_log.js';
 import * as server_comm from './server_comm.js';
-import { Memo, ServerMemo, CacheMemo, PasswordThen, IdName } from './memo_interfaces';
+import { Memo, ServerMemo, CacheMemo, PasswordThen, IdName, HasType } from './memo_interfaces';
+import * as events from './events.js';
+import './img-inline-svg.js';
 
 import init, {
   concatenate,
@@ -78,7 +80,7 @@ const template = `
         right: 0;
         border-radius: 10px;
       }
-      nav img {
+      nav img, img-inline-svg {
         width: 48px;
       }
       #modal_password {
@@ -130,24 +132,28 @@ const template = `
     </style>
     <div id="container">
     <nav id="toolbar">
-    <img id="password_button" src="/images/lock-reset.svg">
-    <img id="decrypt_button" src="/images/ic_lock_open_48px.svg">
-    <img id="encrypt_button" src="/images/ic_lock_48px.svg">
-    <img id="edit_button" src="/images/ic_create_48px.svg">
+    <img-inline-svg id="password_button" src="/images/lock-reset.svg"></img-inline-svg>
+    <img-inline-svg id="decrypt_button" src="/images/ic_lock_open_48px.svg"></img-inline-svg>
+    <img-inline-svg id="encrypt_button" src="/images/ic_lock_48px.svg"></img-inline-svg>
+    <img-inline-svg id="edit_button" src="/images/ic_create_48px.svg"></img-inline-svg>
     </nav>
     <!-- <img id="expand_img" src="/images/ic_expand_more_48px.svg"> -->
     <div id="presentation">Loading...</div>
     <div id="editing" style="display: none">
     <nav id="edit_toolbar">
-      <img id="crypto_button" src="/images/ic_insert_comment_48px.svg">
-      <img id="today_button" src="/images/ic_today_48px.svg">
-      <img id="checkbox_button" src="/images/ic_done_48px.svg">
-      <img id="link_button" src="/images/ic_link_48px.svg">
+      <img-inline-svg id="crypto_button" src="/images/ic_insert_comment_48px.svg"></img-inline-svg>
+      <img-inline-svg id="today_button" src="/images/ic_today_48px.svg"></img-inline-svg>
+      <img-inline-svg id="checkbox_button" src="/images/ic_done_48px.svg"></img-inline-svg>
+      <img-inline-svg id="link_button" src="/images/ic_link_48px.svg"></img-inline-svg>
       <span style="display: inline-block; width: 48px;"></span>
-      <img id="save_button" src="/images/ic_save_48px.svg" >
-      <img id="save_all_button" src="/images/save_alt-24px.svg" >
+      <img-inline-svg id="save_button" src="/images/ic_save_48px.svg"></img-inline-svg>
+      <img-inline-svg id="save_all_button" src="/images/save_alt-24px.svg"></img-inline-svg>
     </nav>
-    <div id="edit_meta"><span id="edit_memogroup"></span><span id="edit_user"></span></div>
+    <div id="edit_meta">
+      <span id="edit_memogroup"></span>
+      <span id="edit_timestamp"></span>
+      <span id="edit_user"></span>
+    </div>
     <textarea id="source" autocomplete="off" ></textarea>
     </div>
     <footer id="status"></footer>
@@ -165,6 +171,29 @@ const template = `
     </div>
 `;
 
+declare global {
+  interface Date {
+    toIsoString: () => string;
+  }
+}
+
+Date.prototype.toIsoString = function() {
+  var tzo = -this.getTimezoneOffset(),
+      dif = tzo >= 0 ? '+' : '-',
+      pad = function(num) {
+          var norm = Math.floor(Math.abs(num));
+          return (norm < 10 ? '0' : '') + norm;
+      };
+  return this.getFullYear() +
+      '-' + pad(this.getMonth() + 1) +
+      '-' + pad(this.getDate()) +
+      'T' + pad(this.getHours()) +
+      ':' + pad(this.getMinutes()) +
+      ':' + pad(this.getSeconds()) +
+      dif + pad(tzo / 60) +
+      ':' + pad(tzo % 60);
+}
+
 type MyElement = HTMLElement & HTMLInputElement & PasswordThen;
 export class MemoEditor extends HTMLElement {
   private $: { [key: string]: MyElement };
@@ -172,6 +201,7 @@ export class MemoEditor extends HTMLElement {
   private _memoId: number;
   private _memogroup: IdName;
   private _user: IdName;
+  private _timestamp: number;
 
   constructor() {
     super();
@@ -226,14 +256,22 @@ export class MemoEditor extends HTMLElement {
       }
     });
 
-    this.$.decrypt_button.addEventListener("click", () => {
-      this.value = memo_decrypt(this.$.source.value, this.$.password.value);
+    this.$.decrypt_button.addEventListener("click", async () => {
+      const password = await this._get_password();
+      const clear_text = memo_decrypt(this.$.source.value, password);
+      if(this._edit) {
+        this.value = clear_text;
+      } else {
+        this.$.presentation.innerHTML = process_markdown(clear_text);
+      }
     });
 
     this.$.encrypt_button.addEventListener("click", async () => {
       const encrypted_source = await this._encrypt();
       this.value = encrypted_source;
-      db.save_local_only(await this.get_memo());
+      const memo = await db.save_local_only(await this.get_memo());
+      this._timestamp = memo.timestamp;
+      this._display_timestamp()
     });
 
     // Editing
@@ -315,17 +353,22 @@ export class MemoEditor extends HTMLElement {
     });
 
     // listen to saving events
-    document.addEventListener('savingEvent', event => {
+    document.addEventListener(events.SAVING_EVENT, event => {
       console.log('Received saving event', event);
       this.$.status.innerText = (event as CustomEvent).detail;
     });
 
+    document.addEventListener(events.SAVE_ALL_FINISHED, event =>  {
+      this.$.save_all_button.style.color = '';
+    });
+
     // save every time we might get rid of the page content
-    window.addEventListener('blur',         this.save_local_only);
-    window.addEventListener('beforeunload', this.save_local_only);
-    window.addEventListener('pagehide',     this.save_local_only);
-    window.addEventListener('pageshow',     this.save_local_only);
-    window.addEventListener('popstate',     this.save_local_only);
+    const save = this.save_local_only.bind(this);
+    window.addEventListener('blur',         save);
+    window.addEventListener('beforeunload', save);
+    window.addEventListener('pagehide',     save);
+    window.addEventListener('pageshow',     save);
+    window.addEventListener('popstate',     save);
 
   } // end of initialize
 
@@ -431,14 +474,20 @@ export class MemoEditor extends HTMLElement {
     return db.save_local_only(memo);
   }
 
-  async save_local_only(event? : Event) {
+  async save_local_only(event : HasType) {
     const cause = event && event.type || 'no event supplied';
     if(!this._memoId) {
       konsole.log('save_local_only, triggered by', cause, '; no memo in the editor, nothing to save');
       return;
     }
-    konsole.log('save_local_only, triggered by', cause);
-    db.save_local_only(await this.get_memo());
+    konsole.log(`save_local_only ${this._memoId}, triggered by, ${cause}`);
+    const saved_memo = await db.save_local_only(await this.get_memo());
+    if(saved_memo.timestamp > this._timestamp) {
+      konsole.log(`save_local_only, save happened, current timestamp: ${new Date(this._timestamp).toIsoString()}, cache timestamp ${new Date(saved_memo.timestamp).toIsoString()}`)
+      this._timestamp = saved_memo.timestamp;
+      this._display_timestamp();
+      this.$.save_all_button.style.color = 'red';
+    }
   }
   /**
    * Persist on the server. This will be chained after validation,
@@ -494,7 +543,9 @@ export class MemoEditor extends HTMLElement {
 
   new() {
     this._memoId = - (+ new Date);
-    this.memogroup = undefined;
+    this.memogroup = null;
+    this._user = null;
+    this._timestamp = 0;
     this.$.source.value = "";
 
     this._show_editor();
@@ -510,13 +561,15 @@ export class MemoEditor extends HTMLElement {
       memogroup: this.memogroup,
       text: encrypted_source,
       user: this._user,
+      timestamp: this._timestamp,
     };
     return result;
   }
 
   async set_memo(memo: Memo) {
     konsole.log('Activating memo', memo);
-    await this.save_local_only()
+
+    await this.save_local_only({type: 'set_memo'});
 
     this._memoId = memo.id;
     this._memogroup = memo.memogroup;
@@ -524,6 +577,12 @@ export class MemoEditor extends HTMLElement {
     this.value = memo.text;
     this.$.edit_user.innerText = memo.user && memo.user.name || '';
     this.$.edit_memogroup.innerText = memo.memogroup && memo.memogroup.name || '';
+    this._timestamp = memo.timestamp;
+    this._display_timestamp();
+  }
+  
+  _display_timestamp() {
+    this.$.edit_timestamp.innerText = new Date(this._timestamp).toIsoString();
   }
 }
 

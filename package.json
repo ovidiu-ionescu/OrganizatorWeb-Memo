@@ -5,11 +5,12 @@
   "main": "index.js",
   "scripts": {
     "build:test": "tsc --outDir build",
+    "copy:js": "rsync -r src/main/*.js build/main",
     "copy:html": "rsync -r src/html/ build/main",
     "copy:images": "rsync -r images build/main/",
     "jasmine": "karma start karma.jasmine.conf.js",
     "mocha": "karma start karma.mocha.conf.js",
-    "build": "npm-run-all build:test copy:html copy:images",
+    "build": "npm-run-all build:test copy:js copy:html copy:images",
     "test": "npm-run-all build mocha",
     "_test": "echo \"Error: no test specified\" && exit 1"
   },

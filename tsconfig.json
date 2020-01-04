@@ -7,7 +7,8 @@
     "outDir": "build",
     "rootDir": "src",
     "target": "es2017",
-    "typeRoots": ["types"]
+    "typeRoots": ["types"],
+    "esModuleInterop": true
   },
   "include": [
     "src/**/*.ts"

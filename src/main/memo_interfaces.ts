@@ -75,3 +75,4 @@ export interface UpdateMemoLogic {
 export interface HasType {
   type: string;
 }
+

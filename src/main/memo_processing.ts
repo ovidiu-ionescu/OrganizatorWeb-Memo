@@ -6,6 +6,10 @@ import konsole from './console_log.js';
 
 import { Memo, ServerMemo, CacheMemo, ServerMemoTitle, AccessTime } from './memo_interfaces.js';
 
+function XOR(a: any, b: any) {
+  return ( a || b ) && !( a && b );
+}
+
 /**
  * Change the structure returned by the server into the one used by the client
  * @param {ServerMemo} server_memo 
@@ -43,6 +47,15 @@ export const equal = (memo1: Memo, memo2: Memo): boolean => {
     konsole.log(`equal: Id is different between memo ${memo1.id} and ${memo2.id}`)
     return false;
   }
+
+  if(XOR(memo1.memogroup, memo2.memogroup)) {
+    return false;
+  }
+
+  if(memo1.memogroup && memo2.memogroup && (memo1.memogroup.id != memo2.memogroup.id)) {
+    return false;
+  }
+
   // TODO: ownership could also change!
   return true;
 }

@@ -1,4 +1,4 @@
-import * as memo_processing from '../../../ts/memo_processing.js';
+import * as memo_processing from '../../../main/memo_processing.js';
 
 describe("Testing memo processing", () => {
 

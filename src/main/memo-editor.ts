@@ -4,6 +4,7 @@ import * as server_comm from './server_comm.js';
 import { Memo, ServerMemo, CacheMemo, PasswordThen, IdName, HasType } from './memo_interfaces.js';
 import * as events from './events.js';
 import './img-inline-svg.js';
+import './group-list.js';
 
 import init, {
   concatenate,
@@ -150,9 +151,9 @@ const template = `
       <img-inline-svg id="save_all_button" src="/images/save_alt-24px.svg"></img-inline-svg>
     </nav>
     <div id="edit_meta">
-      <span id="edit_memogroup"></span>
-      <span id="edit_timestamp"></span>
       <span id="edit_user"></span>
+      <span id="edit_timestamp"></span>
+      <memogroup-list id="edit_memogroup"></memogroup-list>
     </div>
     <textarea id="source" autocomplete="off" ></textarea>
     </div>
@@ -208,6 +209,9 @@ export class MemoEditor extends HTMLElement {
     this.initialize();
   }
 
+  get memoId() {
+    return this._memoId;
+  }
   async initialize() {
     const shadow = this.attachShadow({ mode: "open" });
     shadow.innerHTML = template;
@@ -269,9 +273,7 @@ export class MemoEditor extends HTMLElement {
     this.$.encrypt_button.addEventListener("click", async () => {
       const encrypted_source = await this._encrypt();
       this.value = encrypted_source;
-      const memo = await db.save_local_only(await this.get_memo());
-      this._timestamp = memo.timestamp;
-      this._display_timestamp()
+      this.save_local_only({type: 'Encryption button'});
     });
 
     // Editing
@@ -358,8 +360,10 @@ export class MemoEditor extends HTMLElement {
       this.$.status.innerText = (event as CustomEvent).detail;
     });
 
-    document.addEventListener(events.SAVE_ALL_FINISHED, event =>  {
-      this.$.save_all_button.style.color = '';
+    document.addEventListener(events.SAVE_ALL_STATUS, event =>  {
+      konsole.log(`Received ${events.SAVE_ALL_STATUS} event, detail ${(event as CustomEvent).detail}`);
+      this.$.save_all_button.style.color = (event as CustomEvent).detail;
+      konsole.log(`Button color is: [${this.$.save_all_button.style.color}]`);
     });
 
     // save every time we might get rid of the page content
@@ -383,8 +387,6 @@ export class MemoEditor extends HTMLElement {
     this.$.editing.style.display = "";
     this._edit = true;
   }
-
-
 
   _resizeTextArea() {
     //console.log(this.$.source.scrollHeight, this.$.source.style.height);
@@ -486,7 +488,9 @@ export class MemoEditor extends HTMLElement {
       konsole.log(`save_local_only, save happened, current timestamp: ${new Date(this._timestamp).toIsoString()}, cache timestamp ${new Date(saved_memo.timestamp).toIsoString()}`)
       this._timestamp = saved_memo.timestamp;
       this._display_timestamp();
-      this.$.save_all_button.style.color = 'red';
+      events.save_all_status(events.SaveAllStatus.Dirty)
+    } else {
+      konsole.log(`Save of memo ${this._memoId} did not happen, we didn't get a new timestamp, old ${this._timestamp}, new ${saved_memo.timestamp}`)
     }
   }
   /**
@@ -547,7 +551,7 @@ export class MemoEditor extends HTMLElement {
     this._user = null;
     this._timestamp = 0;
     this.$.source.value = "";
-
+    this.$.edit_memogroup.value = "-1";
     this._show_editor();
   }
 
@@ -558,7 +562,7 @@ export class MemoEditor extends HTMLElement {
     const encrypted_source =  await this._encrypt();
     const result = {
       id: this._memoId,
-      memogroup: this.memogroup,
+      memogroup: (this.$.edit_memogroup as any).memogroup,
       text: encrypted_source,
       user: this._user,
       timestamp: this._timestamp,
@@ -576,7 +580,11 @@ export class MemoEditor extends HTMLElement {
     this._user = memo.user;
     this.value = memo.text;
     this.$.edit_user.innerText = memo.user && memo.user.name || '';
-    this.$.edit_memogroup.innerText = memo.memogroup && memo.memogroup.name || '';
+    if(memo.memogroup) {
+      this.$.edit_memogroup.value = memo.memogroup.id.toString();
+    } else {
+      this.$.edit_memogroup.value = "-1";
+    }
     this._timestamp = memo.timestamp;
     this._display_timestamp();
   }

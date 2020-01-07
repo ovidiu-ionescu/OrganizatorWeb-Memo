@@ -5,6 +5,7 @@ import { Memo, ServerMemo, CacheMemo, PasswordThen, IdName, HasType } from './me
 import * as events from './events.js';
 import './img-inline-svg.js';
 import './group-list.js';
+import * as memo_processing from './memo_processing.js';
 
 import init, {
   concatenate,
@@ -128,6 +129,9 @@ const template = `
       #edit_meta {
         display: flex;
         justify-content: space-between;
+      }
+      #presentation p {
+        overflow-wrap: anywhere;
       }
 
     </style>
@@ -328,8 +332,12 @@ export class MemoEditor extends HTMLElement {
       // }
 
       let s = this.$.source.value;
+      try {
+        text = new URL(s.slice(start_offset, end_offset)).hostname;
+      } catch(error) {
+      }
       s = s.slice(0, end_offset) + ")" + s.slice(end_offset);
-      s = s.slice(0, start_offset) + `[](${text}` + s.slice(start_offset);
+      s = s.slice(0, start_offset) + `[${text}](` + s.slice(start_offset);
       this.$.source.value = s;
     });
 
@@ -352,6 +360,15 @@ export class MemoEditor extends HTMLElement {
         `[${new URL(text).hostname}](${text})` +
         editor.value.slice(editor.selectionEnd);
       editor.value = link_text;
+    });
+
+    this.$.source.addEventListener('click', event => {
+      const editor = this.$.source;
+      const interestPoint = editor.selectionStart;
+      const new_text = memo_processing.toggle_checkbox(editor.value, interestPoint);
+      if(new_text) {
+        editor.value = new_text; 
+      }
     });
 
     // listen to saving events

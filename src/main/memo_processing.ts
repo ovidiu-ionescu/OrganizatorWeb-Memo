@@ -136,3 +136,13 @@ export const make_title_list = (titles: ServerMemoTitle[], access_times: AccessT
     (a, b) => b.last_access - a.last_access
   )
 };
+
+export const toggle_checkbox = (text: string, index: number): string => {
+  const regex = /- \[(x| )\]/g;
+  let m: RegExpExecArray;
+  while(m = regex.exec(text)) {
+    if(index >= m.index && index < m.index + m[0].length) {
+      return text.slice(0, m.index) + `- [${m[1] === ' ' ? 'x' : ' '}]` + text.slice(m.index + m[0].length);
+    }
+  }
+}

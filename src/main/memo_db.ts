@@ -204,6 +204,10 @@ export const save_memo_after_saving_to_server = async (old_id: number, server_me
   if(!server_memo || old_id < 0) {
     await delete_memo(old_id);
   }
+  if(server_memo && old_id < 0) {
+    // announce everybody this memo has a new id, especially the editor
+    pa.memo_change_id(old_id, server_memo.id);
+  }
   if(!server_memo) {
     return;
   }

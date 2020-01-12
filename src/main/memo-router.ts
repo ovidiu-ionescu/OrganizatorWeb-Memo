@@ -6,6 +6,7 @@ import konsole from './console_log.js';
 import * as server_comm from './server_comm.js';
 
 const routerInterceptor = (evt) => {
+  konsole.log('Router interceptor, got event', evt);
   // check if we are trying to navigate via a href
   const target = evt.target;
   // console.log(target);
@@ -100,6 +101,8 @@ const postOptions: RequestInit = {
  * Fetches the memo in the url from local storage and server
  */
 async function loadMemo() {
+  set_status_in_editor(`# Loading...`);
+
   const path = window.location.pathname;
   //console.log(path);
   const m = path.match(/\/memo\/(\d+)/);
@@ -110,7 +113,7 @@ async function loadMemo() {
   if(memo) {
     set_memo_in_editor(memo);
   } else {
-    console.log('Failed to get memo from local storage', id);
+    konsole.log('Failed to get memo from local storage', id);
   }
 
   const response = await fetch(
@@ -142,6 +145,11 @@ async function set_memo_in_editor(memo: Memo) {
   editor.set_memo(memo);
 }
 
+function set_status_in_editor(text: string) {
+  const editor = <MemoEditor>(document.getElementById("editor"));
+  editor.show_status(text);
+}
+
 /**
  * Fetches all memo titles from the server
  * @param {*} force_reload if false just keep the current list
@@ -163,7 +171,7 @@ async function loadMemoTitles(force_reload? : boolean) {
     return;
   } else if (response.status === 200) {
     const responseJson = await response.json();
-    displayMemoTitles(responseJson);
+    displayMemoTitles(responseJson, false);
     //console.log(responseJson);
   }
 
@@ -175,7 +183,7 @@ const headerStartRegex = /^#+\s+/
  * Renders the list of memo titles in the DOM
  * @param {ServerMemoList} responseJson 
  */
-const displayMemoTitles = async (responseJson: ServerMemoList) => {
+const displayMemoTitles = async (responseJson: ServerMemoList, auto_open: boolean) => {
   const dest = document.getElementById('memoTitlesList');
   dest.innerText = '';
 
@@ -193,6 +201,9 @@ const displayMemoTitles = async (responseJson: ServerMemoList) => {
     dest.appendChild(memo);
   });
 
+  if(dest.childElementCount === 1) {
+    dest.firstElementChild.dispatchEvent(new CustomEvent('click', {bubbles: true}));
+  }
 }
 
 /**
@@ -210,6 +221,6 @@ export async function searchMemos() {
     "body": `search=${encodeURIComponent(criteria)}`,
   });
   const responseJson = await response.json();
-  displayMemoTitles(responseJson);
+  displayMemoTitles(responseJson, true);
   //console.log(responseJson);
 }

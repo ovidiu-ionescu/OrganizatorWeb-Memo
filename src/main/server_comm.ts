@@ -76,7 +76,6 @@ export const save_all = async () => {
     }
 
     const server_memo = await save_to_server(memo.local);
-    // TODO: need to take care of current URL
     db.save_memo_after_saving_to_server(id, server_memo);
   }
 

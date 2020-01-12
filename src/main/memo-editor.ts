@@ -20,7 +20,9 @@ const WASM_LOADED_EVENT = "memo_wasm_loaded";
 
 const loadWasm = async () => {
   if (WASM_LOADED) return;
-  await init();
+  const ini = init();
+  konsole.log('wasm init', ini);
+  await ini;
   WASM_LOADED = true;
 
   let event = new Event(WASM_LOADED_EVENT);
@@ -28,7 +30,7 @@ const loadWasm = async () => {
   document.dispatchEvent(event);
 };
 
-loadWasm();
+//loadWasm();
 
 const template = `
     <style type="text/css">
@@ -131,7 +133,7 @@ const template = `
         justify-content: space-between;
       }
       #presentation p {
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
       }
 
     </style>
@@ -156,7 +158,7 @@ const template = `
     </nav>
     <div id="edit_meta">
       <span id="edit_user"></span>
-      <span id="edit_timestamp"></span>
+      <time id="edit_timestamp"></time>
       <memogroup-list id="edit_memogroup"></memogroup-list>
     </div>
     <textarea id="source" autocomplete="off" ></textarea>
@@ -383,6 +385,14 @@ export class MemoEditor extends HTMLElement {
       konsole.log(`Button color is: [${this.$.save_all_button.style.color}]`);
     });
 
+    document.addEventListener(events.MEMO_CHANGE_ID, (event: CustomEvent) => {
+      konsole.log(`Received ${events.MEMO_CHANGE_ID} event, detail ${event.detail}`);
+      if(event.detail.old_id === this._memoId) {
+        this._memoId = event.detail.new_id;
+        window.history.replaceState(null, "", `/memo/${event.detail.new_id}`);
+      }
+    });
+
     // save every time we might get rid of the page content
     const save = this.save_local_only.bind(this);
     window.addEventListener('blur',         save);
@@ -429,23 +439,14 @@ export class MemoEditor extends HTMLElement {
     if (!text.startsWith("#")) {
       text = "```\n" + text + "\n```";
     }
-
-    this.$.presentation.innerHTML = process_markdown(text);
+    loadWasm().then(() => {
+      this.$.presentation.innerHTML = process_markdown(text);
+    });
   }
 
-  set value(markdown: string) {
+  set value (markdown: string) {
     this.$.source.value = markdown;
-    const proc = () => {
-      // console.log('process', WASM_LOADED_EVENT);
-      document.removeEventListener(WASM_LOADED_EVENT, proc);
-      this._display_markdown();
-    };
-    if (WASM_LOADED) {
-      proc();
-    } else {
-      // console.log('wasm not loaded, add an event listener');
-      document.addEventListener(WASM_LOADED_EVENT, proc);
-    }
+    this._display_markdown();
     if (this.isConnected) this._resizeTextArea();
   }
 
@@ -604,9 +605,30 @@ export class MemoEditor extends HTMLElement {
     }
     this._timestamp = memo.timestamp;
     this._display_timestamp();
+
+    this._show_presentation()
   }
-  
+
+  /**
+   * Display some status text like loading... etc
+   * @param text 
+   */
+  show_status(text: string) {
+    this._memoId = null;
+    this._memogroup = null;
+    this._user = null;
+    this.value = text;
+    this.$.edit_user.innerText = '';
+    this.$.edit_memogroup.value = "-1";
+    this._timestamp = null;
+    this._display_timestamp();
+    this._show_presentation()
+  }
+
   _display_timestamp() {
+    if(!this._timestamp) {
+      return '';
+    }
     this.$.edit_timestamp.innerText = new Date(this._timestamp).toIsoString();
   }
 }

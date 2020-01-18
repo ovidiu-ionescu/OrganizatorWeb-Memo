@@ -3,9 +3,10 @@ import { MemoEditor } from "./memo-editor"
 export interface Memo {
   id:           number;
   text:         string;
-  memogroup?:    IdName;
+  memogroup?:   IdName;
   timestamp?:   number;
   user?:        IdName;
+  readonly?:    boolean;
 }
 
 export interface IdName {
@@ -20,6 +21,11 @@ export interface ServerMemo {
   title:        string;
   memotext:     string;
   savetime?:    number;
+}
+
+export interface ServerMemoReply {
+  server_memo:  ServerMemo;
+  user:         IdName;
 }
 
 export interface ServerMemoTitle {
@@ -38,6 +44,7 @@ export interface MemoTitle {
   id:           number;
   last_access:  number;
   title:        string;
+  readonly?:    boolean;
 }
 
 export interface CacheMemo {

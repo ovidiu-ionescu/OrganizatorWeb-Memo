@@ -1,4 +1,4 @@
-import { Memo, ServerMemo, CacheMemo, AccessTime, UpdateMemoLogic, GenericReject } from './memo_interfaces.js';
+import { Memo, ServerMemo, ServerMemoReply, CacheMemo, AccessTime, UpdateMemoLogic, GenericReject, IdName } from './memo_interfaces.js';
 
 import * as pa from './events.js';
 import * as memo_processing from './memo_processing.js';
@@ -106,15 +106,15 @@ export const read_memo = async (id: number) => {
   return cache_memo ? cache_memo.local : null;
 }
 
-export const save_memo_after_fetching_from_server = async (server_memo: ServerMemo):Promise<Memo> => {
+export const save_memo_after_fetching_from_server = async (server_memo_reply: ServerMemoReply):Promise<Memo> => {
   konsole.log('Save memo after fetching from server');
   // sanitize the input first
-  const memo = memo_processing.server2local(server_memo);
+  const memo = memo_processing.server2local(server_memo_reply);
   const transaction = await get_memo_write_transaction();
 
   await update_access_time(transaction, memo.id);
 
-  const existing_db_memo = await raw_read_memo(transaction, server_memo.id);
+  const existing_db_memo = await raw_read_memo(transaction, server_memo_reply.server_memo.id);
   if(existing_db_memo) {
     // if the local one is more recent, skip the server one and return local
     if(memo_processing.first_more_recent(existing_db_memo.local, memo)) {
@@ -200,7 +200,8 @@ export const delete_memo = async (id: number) => {
   ]);
 }
 
-export const save_memo_after_saving_to_server = async (old_id: number, server_memo: ServerMemo) => {
+export const save_memo_after_saving_to_server = async (old_id: number, server_memo_reply: ServerMemoReply) => {
+  const server_memo = server_memo_reply.server_memo;
   if(!server_memo || old_id < 0) {
     await delete_memo(old_id);
   }
@@ -211,7 +212,7 @@ export const save_memo_after_saving_to_server = async (old_id: number, server_me
   if(!server_memo) {
     return;
   }
-  const memo = memo_processing.server2local(server_memo);
+  const memo = memo_processing.server2local(server_memo_reply);
   const transaction = await get_memo_write_transaction();
   await raw_write_memo(transaction, memo_processing.make_cache_memo(memo));
   // not sure if access time should be this one, it could be just a batch save

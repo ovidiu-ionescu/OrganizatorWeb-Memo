@@ -4,7 +4,7 @@ import konsole from './console_log.js';
  * Common operations on memos
  */
 
-import { Memo, ServerMemo, CacheMemo, ServerMemoTitle, AccessTime } from './memo_interfaces.js';
+import { Memo, ServerMemo, ServerMemoReply, CacheMemo, ServerMemoTitle, AccessTime, IdName } from './memo_interfaces.js';
 
 function XOR(a: any, b: any) {
   return ( a || b ) && !( a && b );
@@ -14,16 +14,18 @@ function XOR(a: any, b: any) {
  * Change the structure returned by the server into the one used by the client
  * @param {ServerMemo} server_memo 
  */
-export const server2local = (server_memo: ServerMemo): Memo => {
+export const server2local = (server_memo_reply: ServerMemoReply): Memo => {
   // rename savetime to timestamp for consistency
   
+  const server_memo = server_memo_reply.server_memo;
   const text: string = `${server_memo.title}${server_memo.memotext}`.split("\r").join("");
   const memo: Memo = {
-    id:        server_memo.id,
-    text:      text,
-    memogroup: server_memo.memogroup,
-    timestamp: server_memo.savetime || undefined,
-    user:      server_memo.user,
+    id:         server_memo.id,
+    text:       text,
+    memogroup:  server_memo.memogroup,
+    timestamp:  server_memo.savetime || undefined,
+    user:       server_memo.user,
+    readonly:   server_memo.user.id !== server_memo_reply.user.id,
   }
   return memo;
 }

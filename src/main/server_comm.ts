@@ -1,6 +1,6 @@
 import konsole from './console_log.js';
 import * as db from './memo_db.js';
-import { Memo, ServerMemo, CacheMemo, PasswordThen, IdName, ServerMemoTitle } from './memo_interfaces.js';
+import { Memo, ServerMemo, CacheMemo, PasswordThen, IdName, ServerMemoTitle, ServerMemoReply } from './memo_interfaces.js';
 import * as events from './events.js';
 import {merge} from './diff_match_patch_uncompressed.js';
 import * as memo_processing from './memo_processing.js';
@@ -57,11 +57,13 @@ export const save_all = async () => {
     const id = memo.id;
     if(memo.id > -1) {
       // this is an existing memo, might have changed on the server since we got it
-      const server_memo = await read_memo(id);
+      // FIXME: if it's been deleted this will break
+      const server_memo_reply = await read_memo(id);
+      const server_memo = server_memo_reply.server_memo
       if(server_memo.savetime && memo.server && memo.server.timestamp && server_memo.savetime > memo.server.timestamp) {
         konsole.log(`we have a conflict`);
         konsole.log(`compute a merge, the server memo has been modified since last save`);
-        const remote_memo = memo_processing.server2local(server_memo);
+        const remote_memo = memo_processing.server2local(server_memo_reply);
         const text = merge(memo.server.text, memo.local.text, remote_memo.text);
         memo.local.text = text;
 
@@ -108,11 +110,11 @@ const get_options: RequestInit = {
   mode: "cors"
 };
 
-export const read_memo = async (id: number): Promise<ServerMemo> => {
+export const read_memo = async (id: number): Promise<ServerMemoReply> => {
   const server_response = await fetch(`/organizator/memo/${id}?request.preventCache=${+new Date()}`, get_options);
   if (server_response.status === 200) {
     const json = await server_response.json();
-    return json.memo;
+    return { server_memo: json.memo, user: json.user };
   } else {
     throw {
       errorCode: server_response.status,

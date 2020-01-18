@@ -35,14 +35,20 @@ describe("Testing the database functions", () => {
 
   it('Should save the server memo and access time should be read time', async () => {
     await db.save_memo_after_fetching_from_server({
-      id:        2,
-      memogroup: null,
-      title:     'Title\r\n',
-      memotext:  'Body',
-      savetime:  100,
+      server_memo: {        
+        id:        2,
+        memogroup: null,
+        title:     'Title\r\n',
+        memotext:  'Body',
+        savetime:  100,
+        user: {
+          id:      1,
+          name:    'root'
+        },
+      },
       user: {
-        id:      1,
-        name:    'root'
+        id:   2,
+        name: 'root'
       }
     });
     clock.tick(10);
@@ -65,10 +71,10 @@ describe("Testing the database functions", () => {
 
   it('should refuse to save if nothing changed', async () => {
     const saved = await db.save_local_only({
-        id:        2,
-        memogroup: null,
-        text:      'Title\nBody',
-        timestamp: 100,
+        id:         2,
+        memogroup:  null,
+        text:       'Title\nBody',
+        timestamp:  100,
       });
     expect(saved.timestamp).to.equal(100);
   });
@@ -78,7 +84,7 @@ describe("Testing the database functions", () => {
     let saved = await db.save_local_only({
         id: 2,
         memogroup: null,
-        text: 'Title\nBody2'
+        text: 'Title\nBody2',
     });
     expect(saved.timestamp).to.be.greaterThan(0);
     let unsaved = await db.unsaved_memos();
@@ -102,18 +108,24 @@ describe("Testing the database functions", () => {
   it('should remove the old negative number entries when saving to server', async () => {
     clock.tick(10);
     const memo = await db.save_memo_after_saving_to_server(-2, {
-      id:       3,
-      memogroup: {
-        id:     2,
-        name:   'memogroup 2'
+      server_memo: {
+        id:       3,
+        title:    'Title 3\r\n',
+        memotext: 'Body3',
+        savetime: 200,
+        memogroup: {
+          id:     2,
+          name:   'memogroup 2'
+        },
+        user: {
+          id:     5,
+          name:   'username'
+        },
       },
       user: {
-        id:     5,
-        name:   'username'
-      },
-      title:    'Title 3\r\n',
-      memotext: 'Body3',
-      savetime: 200 
+        id: 1,
+        name: 'root',
+      }
     });
     expect(memo).to.be.deep.equal({
       id:       3,

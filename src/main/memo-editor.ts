@@ -204,11 +204,12 @@ Date.prototype.toIsoString = function() {
 type MyElement = HTMLElement & HTMLInputElement & PasswordThen;
 export class MemoEditor extends HTMLElement {
   private $: { [key: string]: MyElement };
-  private _edit: boolean;
-  private _memoId: number;
+  private _edit:      boolean;
+  private _memoId:    number;
   private _memogroup: IdName;
-  private _user: IdName;
+  private _user:      IdName;
   private _timestamp: number;
+  private _readonly:  boolean;
 
   constructor() {
     super();
@@ -284,6 +285,9 @@ export class MemoEditor extends HTMLElement {
 
     // Editing
     this.$.edit_button.addEventListener("click", () => {
+      if(this._readonly) {
+        return;
+      }
       if (this._edit) {
         this._show_presentation();
       } else {
@@ -481,15 +485,17 @@ export class MemoEditor extends HTMLElement {
 
   /**
    * Save the memo body to local storage
-   * @param {String} src
-   * @returns {String} same as input so it can be chained
+   * @deprecated
+   * @param src
+   * @returns same as input so it can be chained
    */
   save_to_local(src: string) {
     const memo = {
-      id: this._memoId,
-      text: src,
-      memogroup: this._memogroup,
-      timestamp: +new Date()
+      id:         this._memoId,
+      text:       src,
+      memogroup:  this._memogroup,
+      timestamp:  + new Date(),
+      readonly:   this._readonly,
     };
     return db.save_local_only(memo);
   }
@@ -570,6 +576,7 @@ export class MemoEditor extends HTMLElement {
     this._timestamp = 0;
     this.$.source.value = "";
     this.$.edit_memogroup.value = "-1";
+    this._readonly = false;
     this._show_editor();
   }
 
@@ -579,11 +586,12 @@ export class MemoEditor extends HTMLElement {
   async get_memo(): Promise<Memo> {
     const encrypted_source =  await this._encrypt();
     const result = {
-      id: this._memoId,
-      memogroup: (this.$.edit_memogroup as any).memogroup,
-      text: encrypted_source,
-      user: this._user,
-      timestamp: this._timestamp,
+      id:         this._memoId,
+      memogroup:  (this.$.edit_memogroup as any).memogroup,
+      text:       encrypted_source,
+      user:       this._user,
+      timestamp:  this._timestamp,
+      readonly:   this._readonly,
     };
     return result;
   }
@@ -604,6 +612,7 @@ export class MemoEditor extends HTMLElement {
       this.$.edit_memogroup.value = "-1";
     }
     this._timestamp = memo.timestamp;
+    this._readonly = !!memo.readonly;
     this._display_timestamp();
 
     this._show_presentation()
@@ -621,8 +630,9 @@ export class MemoEditor extends HTMLElement {
     this.$.edit_user.innerText = '';
     this.$.edit_memogroup.value = "-1";
     this._timestamp = null;
+    this._readonly = true;
     this._display_timestamp();
-    this._show_presentation()
+    this._show_presentation();
   }
 
   _display_timestamp() {

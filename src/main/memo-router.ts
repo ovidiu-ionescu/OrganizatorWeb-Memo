@@ -125,8 +125,8 @@ async function loadMemo() {
     window.location.replace("/login.html");
     return;
   } else if (response.status === 200) {
-    const obj = await response.json();
-    const memo = await db.save_memo_after_fetching_from_server(obj.memo);
+    const json = await response.json();
+    const memo = await db.save_memo_after_fetching_from_server({ server_memo: json.memo, user: json.user });
     set_memo_in_editor(memo);
   }
 
@@ -214,6 +214,11 @@ export async function searchMemos() {
   if(!criteria) {
     console.log('No criteria supplied, just fetch everything');
     return loadMemoTitles(true);
+  }
+
+  if(criteria === '$$$drop local cache') {
+    window.indexedDB.deleteDatabase(db.DBName);
+    return;
   }
 
   const response = await fetch(`/organizator/memo/search?request.preventCache=${+ new Date()}`, {

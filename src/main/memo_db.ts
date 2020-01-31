@@ -204,6 +204,7 @@ export const delete_memo = async (id: number, new_id?: number) => {
     }),
   ]).then(() => {
     if(new_id) {
+      konsole.log(`Memo id changed from ${id} to ${new_id}`);
       events.memo_change_id(id, new_id);
     } else {
       konsole.log(`announce memo ${id} has been deleted`);

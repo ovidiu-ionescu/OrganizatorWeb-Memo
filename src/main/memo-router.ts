@@ -36,19 +36,22 @@ export const navigate = (evt:CustomEvent) => {
   load_route();
 };
 
+let AFTER_LOGIN = true;
+
 export const load_route = () => {
   konsole.log(`route loader`, document.location.pathname);
 
   // check if we got here from login
   if(document.referrer) {
     const url = new URL(document.referrer);
-    if(url.pathname === "/login.html") {
+    if(url.pathname === "/login.html" && AFTER_LOGIN) {
       konsole.log("Coming from login, save everything");
+      AFTER_LOGIN = false;
       server_comm.save_all();
     }
   }
 
-  if(window.location.pathname.match(/\/memo\/(\d+)/)) {
+  if(window.location.pathname.match(/\/memo\/(-?\d+)/)) {
     activatePage('singleMemo');
     loadMemo();
     return;
@@ -133,7 +136,7 @@ async function loadMemo() {
 
   const path = window.location.pathname;
   //console.log(path);
-  const m = path.match(/\/memo\/(\d+)/);
+  const m = path.match(/\/memo\/(-?\d+)/);
   const id = m[1];
   konsole.log('check local storage for memo', id);
   const memo = await db.read_memo(parseInt(id));

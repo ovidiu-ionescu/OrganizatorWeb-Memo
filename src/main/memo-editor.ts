@@ -525,7 +525,7 @@ export class MemoEditor extends HTMLElement {
     konsole.log(`save_local_only ${this._memoId}, triggered by: ${cause}`);
     const saved_memo = await db.save_local_only(await this.get_memo());
     if(saved_memo.timestamp > this._timestamp) {
-      konsole.log(`save_local_only, save happened, current timestamp: ${new Date(this._timestamp).toIsoString()}, cache timestamp ${new Date(saved_memo.timestamp).toIsoString()}`)
+      konsole.log(`save_local_only ${this._memoId}, save happened, current timestamp: ${new Date(this._timestamp).toIsoString()}, cache timestamp ${new Date(saved_memo.timestamp).toIsoString()}`)
       this._timestamp = saved_memo.timestamp;
       this._display_timestamp();
       events.save_all_status(events.SaveAllStatus.Dirty)

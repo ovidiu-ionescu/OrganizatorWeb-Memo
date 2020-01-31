@@ -4,8 +4,9 @@ import * as db from './memo_db.js';
 import * as memo_processing from './memo_processing.js';
 import konsole from './console_log.js';
 import * as server_comm from './server_comm.js';
+import * as events from './events.js';
 
-const routerInterceptor = (evt) => {
+const routerInterceptor = evt => {
   konsole.log('Router interceptor, got event', evt);
   // check if we are trying to navigate via a href
   const target = evt.target;
@@ -23,12 +24,19 @@ const routerInterceptor = (evt) => {
   }
 };
 
+export const navigate = (evt:CustomEvent) => {
+  const dest = evt.detail;
+  konsole.log('Received event to navigate to', dest);
+  history.pushState(null, null, `/${dest}`);
+  activatePage(dest);
+};
+
 export const handleMemo = () => {
   // check if we got here from login
   if(document.referrer) {
     const url = new URL(document.referrer);
     if(url.pathname === "/login.html") {
-      console.log("Coming from login, save everything");
+      konsole.log("Coming from login, save everything");
       server_comm.save_all();
     }
   }
@@ -62,14 +70,21 @@ export const handleMemo = () => {
  */
 const activatePage = (name: string) => {
   // console.log('Activate', name);
-  [...document.querySelectorAll('section')].forEach(art => {
+  [...document.querySelectorAll('[page]')].forEach((art: HTMLElement) => {
     art.style.display = art.id === name ? '' : 'none';
   });
+
+  // tell the page to activate
+  const active: any = document.getElementById(name);
+  if(active && active.activate) {
+    active.activate();
+  }
 }
 
 
 document.addEventListener("click", routerInterceptor);
 window.addEventListener('popstate', handleMemo);
+document.addEventListener(events.NAVIGATE, navigate);
 
 const options: RequestInit = {
   credentials: "include",
@@ -107,15 +122,19 @@ async function loadMemo() {
   //console.log(path);
   const m = path.match(/\/memo\/(\d+)/);
   const id = m[1];
-  console.log('check local storage for memo');
+  konsole.log('check local storage for memo', id);
   const memo = await db.read_memo(parseInt(id));
-  konsole.log('Fetched this from local storage', memo);
+  konsole.log(`Fetched memo from local storage ${id}`, memo);
   if(memo) {
     set_memo_in_editor(memo);
   } else {
     konsole.log('Failed to get memo from local storage', id);
   }
 
+  if(parseInt(id) < 0) {
+    konsole.log('Memo ${id} is new, not fetching from server');
+    return;
+  }
   const response = await fetch(
     `/organizator/memo/${id}?request.preventCache=${+new Date()}`,
     options
@@ -126,8 +145,13 @@ async function loadMemo() {
     return;
   } else if (response.status === 200) {
     const json = await response.json();
-    const memo = await db.save_memo_after_fetching_from_server({ server_memo: json.memo, user: json.user });
-    set_memo_in_editor(memo);
+    if(!json.memo) {
+      konsole.log(`memo ${id} does not exist on server`);
+      set_status_in_editor(`# No memo ${id} on server`);
+    } else {
+      const memo = await db.save_memo_after_fetching_from_server(json);
+      set_memo_in_editor(memo);
+    }
   }
 
   /*
@@ -212,7 +236,7 @@ const displayMemoTitles = async (responseJson: ServerMemoList, auto_open: boolea
 export async function searchMemos() {
   const criteria = (<HTMLInputElement>document.getElementById('searchCriteria')).value;
   if(!criteria) {
-    console.log('No criteria supplied, just fetch everything');
+    konsole.log('No criteria supplied, just fetch everything');
     return loadMemoTitles(true);
   }
 

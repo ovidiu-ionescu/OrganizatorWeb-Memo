@@ -10,6 +10,7 @@ export enum SaveAllStatus {
 export const SAVE_ALL_STATUS = 'saveAllStatus';
 export const SAVING_EVENT = 'savingEvent';
 export const MEMO_CHANGE_ID = 'memoChangeId'
+export const NAVIGATE = 'navigate';
 
 /**
  * Emit an event containing a message
@@ -40,4 +41,8 @@ export const memo_change_id = (old_id: number, new_id: number) => {
     old_id,
     new_id
   }}));
+}
+
+export const navigate = (dest: string) => {
+  document.dispatchEvent(new CustomEvent(NAVIGATE, {detail: dest}));
 }

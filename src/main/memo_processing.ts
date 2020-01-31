@@ -17,7 +17,7 @@ function XOR(a: any, b: any) {
 export const server2local = (server_memo_reply: ServerMemoReply): Memo => {
   // rename savetime to timestamp for consistency
   
-  const server_memo = server_memo_reply.server_memo;
+  const server_memo = server_memo_reply.memo;
   const text: string = `${server_memo.title}${server_memo.memotext}`.split("\r").join("");
   const memo: Memo = {
     id:         server_memo.id,

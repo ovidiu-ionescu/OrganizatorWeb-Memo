@@ -24,7 +24,7 @@ export interface ServerMemo {
 }
 
 export interface ServerMemoReply {
-  server_memo:  ServerMemo;
+  memo:         ServerMemo;
   user:         IdName;
 }
 

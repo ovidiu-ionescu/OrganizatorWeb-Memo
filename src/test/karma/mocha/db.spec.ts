@@ -35,7 +35,7 @@ describe("Testing the database functions", () => {
 
   it('Should save the server memo and access time should be read time', async () => {
     await db.save_memo_after_fetching_from_server({
-      server_memo: {        
+      memo: {        
         id:        2,
         memogroup: null,
         title:     'Title\r\n',
@@ -108,7 +108,7 @@ describe("Testing the database functions", () => {
   it('should remove the old negative number entries when saving to server', async () => {
     clock.tick(10);
     const memo = await db.save_memo_after_saving_to_server(-2, {
-      server_memo: {
+      memo: {
         id:       3,
         title:    'Title 3\r\n',
         memotext: 'Body3',

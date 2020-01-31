@@ -74,5 +74,5 @@ export class MemoGroupList extends GroupList {
   }
 }
 
-konsole.log('Registering memogroup');
+konsole.log('Registering memogroup web component');
 customElements.define("memogroup-list", MemoGroupList);

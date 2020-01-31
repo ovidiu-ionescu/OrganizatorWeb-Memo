@@ -13,6 +13,7 @@
     </script>
     <script type="module">
       import "/memo-editor.js";
+      import "/journal.js";
     </script>
     <script type="text/javascript"></script>
     <style type="text/css">
@@ -63,8 +64,8 @@
   </head>
   <body onload="handleMemo()">
     <main>
-      <section id="singleMemo"><memo-editor id="editor"></memo-editor></section>
-      <section id="memoTitles">
+      <section id="singleMemo" page><memo-editor id="editor"></memo-editor></section>
+      <section id="memoTitles" page>
         <nav>
             <input type="search" id="searchCriteria" autocorrect="off" autocapitalize="none" 
               onkeyup="(e => {if(e.keyCode === 13) searchMemos()})(event)"/>
@@ -77,6 +78,7 @@
         </nav>
         <side id="memoTitlesList"></side>
       </section>
+      <log-journal id="journal" page></log-journal>
     </main>
   </body>
 </html>

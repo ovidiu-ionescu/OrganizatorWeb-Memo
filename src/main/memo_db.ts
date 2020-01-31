@@ -34,10 +34,10 @@ const prepare_db_if_needed = (request: IDBOpenDBRequest) => {
   // This event is only implemented in recent browsers   
   request.onupgradeneeded = event => { 
     // Save the IDBDatabase interface 
-    console.log('Request onupgradeneeded', event);
+    konsole.log('Request onupgradeneeded', event);
     const db = (event.target as IDBOpenDBRequest).result;
 
-    console.log('Create an objectStore for this database');
+    konsole.log('Create an objectStore for this database');
     const memo_store = db.createObjectStore("memo", { keyPath: "id" });
     const access_store = db.createObjectStore("memo_access", { keyPath: "id" });
     access_store.createIndex("last", "last_access");
@@ -81,6 +81,7 @@ const raw_read_memo = (transaction: IDBTransaction, id: number) => {
  * @param db_memo 
  */
 const raw_write_memo = (transaction: IDBTransaction, db_memo: CacheMemo): Promise<CacheMemo> => {
+  konsole.log('writing memo to local storage', db_memo.id);
   const memo_store = transaction.objectStore("memo");
   const request = memo_store.put(JSON.parse(JSON.stringify(db_memo)));
   return new Promise(resolve => {
@@ -92,6 +93,7 @@ const raw_write_memo = (transaction: IDBTransaction, db_memo: CacheMemo): Promis
 
 const write_memo_with_timestamp = (transaction: IDBTransaction, db_memo: CacheMemo) => {
   db_memo.local.timestamp = (+ new Date);
+  konsole.log(`adding timestamp ${db_memo.local.timestamp} to memo ${db_memo.id} before writing`);
   return raw_write_memo(transaction, db_memo);
 }
 
@@ -107,17 +109,18 @@ export const read_memo = async (id: number) => {
 }
 
 export const save_memo_after_fetching_from_server = async (server_memo_reply: ServerMemoReply):Promise<Memo> => {
-  konsole.log('Save memo after fetching from server');
+  konsole.log('Save memo after fetching from server', server_memo_reply.memo.id);
   // sanitize the input first
   const memo = memo_processing.server2local(server_memo_reply);
   const transaction = await get_memo_write_transaction();
 
   await update_access_time(transaction, memo.id);
 
-  const existing_db_memo = await raw_read_memo(transaction, server_memo_reply.server_memo.id);
+  const existing_db_memo = await raw_read_memo(transaction, server_memo_reply.memo.id);
   if(existing_db_memo) {
     // if the local one is more recent, skip the server one and return local
     if(memo_processing.first_more_recent(existing_db_memo.local, memo)) {
+      konsole.log(`Local memo ${memo.id} has timestamp ${existing_db_memo.local.timestamp} more recent than server timestamp ${memo.timestamp}`)
       return existing_db_memo.local;
     } else {
       await raw_write_memo(transaction, memo_processing.make_cache_memo(memo));
@@ -176,6 +179,7 @@ export const unsaved_memos = async () => {
       const cached_memos: Array<CacheMemo> = (<IDBRequest>event.target).result;
       // konsole.log(JSON.stringify(cached_memos, null, 2));
       const unsaved_memos = cached_memos.filter(m => !m.server || m.local.timestamp > m.server.timestamp);
+      konsole.log('unsaved memos:', unsaved_memos.map(m => m.id).join(' '));
       resolve(unsaved_memos);
     }
   });
@@ -201,16 +205,17 @@ export const delete_memo = async (id: number) => {
 }
 
 export const save_memo_after_saving_to_server = async (old_id: number, server_memo_reply: ServerMemoReply) => {
-  const server_memo = server_memo_reply.server_memo;
-  if(!server_memo || old_id < 0) {
+  const server_memo = server_memo_reply.memo;
+  if(!server_memo) {
+    konsole.log(`No memo came back from the server for ${old_id}, removing from local storage`);
     await delete_memo(old_id);
+    return;
   }
   if(server_memo && old_id < 0) {
     // announce everybody this memo has a new id, especially the editor
+    konsole.log(`Memo ${old_id} has been assigned ${server_memo.id} by the server`);
+    await delete_memo(old_id);
     pa.memo_change_id(old_id, server_memo.id);
-  }
-  if(!server_memo) {
-    return;
   }
   const memo = memo_processing.server2local(server_memo_reply);
   const transaction = await get_memo_write_transaction();

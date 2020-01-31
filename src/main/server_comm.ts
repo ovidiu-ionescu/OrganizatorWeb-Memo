@@ -16,8 +16,8 @@ import { MemoEditor } from './memo-editor.js';
  * 
  * @param {Memo} memo body of the memo
  */
-export const save_to_server = async (memo: Memo) => {
-  konsole.log(`Saving to server memo ${memo.id}`);
+export const save_to_server = async (memo: Memo):Promise<ServerMemoReply> => {
+  konsole.log(`Saving to server memo ${memo.id}, size ${memo.text.length}`);
   const memogroup = memo.memogroup ? `group_id=${memo.memogroup.id}&` : "";
   const memoId = memo.id < 0 ? "" : `memoId=${memo.id}&`;
   const text = `text=${encodeURIComponent(memo.text)}&`;
@@ -40,8 +40,9 @@ export const save_to_server = async (memo: Memo) => {
 
   if (response.status === 200) {
     const responseJson = await response.json();
-    return responseJson.memo;
+    return responseJson;
   } else {
+    konsole.log(`Save to server failed for memo ${memoId} with status ${response.status}`);
     throw new Error(`Save failed with status ${response.status}`);
   }
 }
@@ -51,7 +52,8 @@ export const save_all = async () => {
   if(unsaved_memos.length) {
     events.save_all_status(events.SaveAllStatus.Processing);
   }
-  konsole.log({unsaved_memos});
+  // konsole.log({unsaved_memos});
+  const editor = <MemoEditor>(document.getElementById("editor"));
   // save to server and get the server instance
   for(let memo: CacheMemo; memo = unsaved_memos.pop();) {
     const id = memo.id;
@@ -59,16 +61,22 @@ export const save_all = async () => {
       // this is an existing memo, might have changed on the server since we got it
       // FIXME: if it's been deleted this will break
       const server_memo_reply = await read_memo(id);
-      const server_memo = server_memo_reply.server_memo
-      if(server_memo.savetime && memo.server && memo.server.timestamp && server_memo.savetime > memo.server.timestamp) {
-        konsole.log(`we have a conflict`);
-        konsole.log(`compute a merge, the server memo has been modified since last save`);
+      const server_memo = server_memo_reply.memo
+      if(!server_memo && !memo.local.text) {
+        konsole.log(`The memo ${memo.id} is not present on the server and has no local content, delete it`);
+        db.delete_memo(memo.id);
+        if(editor.memoId === memo.id) {
+          editor.show_status(`# Memo ${memo.id} has been deleted`);
+        }
+        continue;
+      }
+      if(server_memo && server_memo.savetime && memo.server && memo.server.timestamp && server_memo.savetime > memo.server.timestamp) {
+        konsole.log(`compute a merge, the server memo has been modified since last save`, memo.id);
         const remote_memo = memo_processing.server2local(server_memo_reply);
         const text = merge(memo.server.text, memo.local.text, remote_memo.text);
         memo.local.text = text;
 
         // if this is loaded in the current editor we need to swap in the new text
-        const editor = <MemoEditor>(document.getElementById("editor"));
         if(editor.memoId === memo.id) {
           editor.set_memo(memo.local);
         }
@@ -111,11 +119,13 @@ const get_options: RequestInit = {
 };
 
 export const read_memo = async (id: number): Promise<ServerMemoReply> => {
+  konsole.log(`Fetching from server, memo`, id);
   const server_response = await fetch(`/organizator/memo/${id}?request.preventCache=${+new Date()}`, get_options);
   if (server_response.status === 200) {
     const json = await server_response.json();
-    return { server_memo: json.memo, user: json.user };
+    return json;
   } else {
+    konsole.error('Failed to fetch from server, memo', id, server_response.status);
     throw {
       errorCode: server_response.status,
       message: `Failed to fetch memo ${id}`,
@@ -129,6 +139,7 @@ export const read_memo_groups = async(): Promise<IdName[]> => {
     const json = await server_response.json();
     return json.memogroups;
   } else {
+    konsole.error('Failed to fetch memogroups', server_response.status);
     throw {
       errorCode: server_response.status,
       message: `Failed to fetch memogroups`,

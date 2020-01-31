@@ -16,18 +16,20 @@ import init, {
 } from "./pkg/concatenate.js";
 
 let WASM_LOADED = false;
-const WASM_LOADED_EVENT = "memo_wasm_loaded";
+let WASM_LOADING = undefined;
 
 const loadWasm = async () => {
   if (WASM_LOADED) return;
-  const ini = init();
-  konsole.log('wasm init', ini);
-  await ini;
+  konsole.log('wasm init', WASM_LOADING);
+  if(!WASM_LOADING) {
+    konsole.log('Initiate wasm loading');
+    WASM_LOADING = init();
+  } else {
+    konsole.log('wasm already loading', WASM_LOADING);
+  }
+  await WASM_LOADING;
   WASM_LOADED = true;
-
-  let event = new Event(WASM_LOADED_EVENT);
-  // console.log('wasm loaded, dispatch an event');
-  document.dispatchEvent(event);
+  konsole.log('wasm was loaded, from now on it should not load again');
 };
 
 //loadWasm();
@@ -143,6 +145,7 @@ const template = `
     <img-inline-svg id="decrypt_button" src="/images/ic_lock_open_48px.svg"></img-inline-svg>
     <img-inline-svg id="encrypt_button" src="/images/ic_lock_48px.svg"></img-inline-svg>
     <img-inline-svg id="edit_button" src="/images/ic_create_48px.svg"></img-inline-svg>
+    <img-inline-svg id="journal_button" src="/images/ic_inbox_48px.svg"></img-inline-svg>
     </nav>
     <!-- <img id="expand_img" src="/images/ic_expand_more_48px.svg"> -->
     <div id="presentation">Loading...</div>
@@ -379,7 +382,7 @@ export class MemoEditor extends HTMLElement {
 
     // listen to saving events
     document.addEventListener(events.SAVING_EVENT, event => {
-      console.log('Received saving event', event);
+      konsole.log('Received saving event', event);
       this.$.status.innerText = (event as CustomEvent).detail;
     });
 
@@ -404,6 +407,11 @@ export class MemoEditor extends HTMLElement {
     window.addEventListener('pagehide',     save);
     window.addEventListener('pageshow',     save);
     window.addEventListener('popstate',     save);
+
+    this.$.journal_button.addEventListener('click', evt => {
+      evt.stopPropagation();
+      events.navigate('journal');
+    });
 
   } // end of initialize
 
@@ -506,7 +514,7 @@ export class MemoEditor extends HTMLElement {
       konsole.log('save_local_only, triggered by', cause, '; no memo in the editor, nothing to save');
       return;
     }
-    konsole.log(`save_local_only ${this._memoId}, triggered by, ${cause}`);
+    konsole.log(`save_local_only ${this._memoId}, triggered by: ${cause}`);
     const saved_memo = await db.save_local_only(await this.get_memo());
     if(saved_memo.timestamp > this._timestamp) {
       konsole.log(`save_local_only, save happened, current timestamp: ${new Date(this._timestamp).toIsoString()}, cache timestamp ${new Date(saved_memo.timestamp).toIsoString()}`)
@@ -514,7 +522,7 @@ export class MemoEditor extends HTMLElement {
       this._display_timestamp();
       events.save_all_status(events.SaveAllStatus.Dirty)
     } else {
-      konsole.log(`Save of memo ${this._memoId} did not happen, we didn't get a new timestamp, old ${this._timestamp}, new ${saved_memo.timestamp}`)
+      konsole.log(`Save local of memo ${this._memoId} did not happen, we didn't get a new timestamp, old ${this._timestamp}, new ${saved_memo.timestamp}`)
     }
   }
   /**
@@ -523,7 +531,7 @@ export class MemoEditor extends HTMLElement {
    * @param {String} src body of the memo
    */
   async save_to_server(memo: Memo) {
-    console.log("Saving to server");
+    konsole.log("Saving to server");
     const memogroup = memo.memogroup ? `group_id=${memo.memogroup.id}&` : "";
     const memoId = memo.id < 0 ? "" : `memoId=${memo.id}&`;
     const text = `text=${encodeURIComponent(memo.text)}&`;
@@ -571,6 +579,7 @@ export class MemoEditor extends HTMLElement {
 
   new() {
     this._memoId = - (+ new Date);
+    konsole.log('New memo in editor', this._memoId);
     this.memogroup = null;
     this._user = null;
     this._timestamp = 0;
@@ -597,7 +606,7 @@ export class MemoEditor extends HTMLElement {
   }
 
   async set_memo(memo: Memo) {
-    konsole.log('Activating memo', memo.id);
+    konsole.log('Activating memo in editor', memo.id);
 
     await this.save_local_only({type: 'set_memo'});
 
@@ -623,6 +632,7 @@ export class MemoEditor extends HTMLElement {
    * @param text 
    */
   show_status(text: string) {
+    konsole.log('Display status in editor', text);
     this._memoId = null;
     this._memogroup = null;
     this._user = null;
@@ -643,4 +653,5 @@ export class MemoEditor extends HTMLElement {
   }
 }
 
+konsole.log('Registering memo-editor web component');
 customElements.define("memo-editor", MemoEditor);

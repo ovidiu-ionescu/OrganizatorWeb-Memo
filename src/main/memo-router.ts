@@ -6,32 +6,39 @@ import konsole from './console_log.js';
 import * as server_comm from './server_comm.js';
 import * as events from './events.js';
 
+
+const local_prefixes = [ '/memo/', '/journal'];
 const routerInterceptor = evt => {
-  konsole.log('Router interceptor, got event', evt);
+  // konsole.log('Router interceptor, got event', evt);
   // check if we are trying to navigate via a href
   const target = evt.target;
   // console.log(target);
-  if (
-    target.nodeName.toLowerCase() === "a" &&
-    target.pathname.startsWith("/memo/")
-  ) {
-    // console.log('route');
-    history.pushState(null, null, target.href);
-    evt.preventDefault();
-    evt.stopPropagation();
-    handleMemo();
-    evt.preventDefault();
+  if (target.nodeName.toLowerCase() === "a") {
+    // is it local ?
+    const match = local_prefixes.find(pref => target.pathname.startsWith(pref));
+    if(match) {
+      konsole.log(new Date().toIsoString(), `history pushstate ${target.href}`);
+      history.pushState(null, null, target.href);
+      konsole.log('<hr>');
+      evt.preventDefault();
+      evt.stopPropagation();
+
+      route();
+    }
   }
 };
 
 export const navigate = (evt:CustomEvent) => {
   const dest = evt.detail;
-  konsole.log('Received event to navigate to', dest);
-  history.pushState(null, null, `/${dest}`);
-  activatePage(dest);
+  konsole.log(new Date().toIsoString(), 'Received event to navigate to', dest);
+  history.pushState(null, null, `${dest}`);
+  konsole.log('<hr>');
+  route();
 };
 
-export const handleMemo = () => {
+export const route = () => {
+  konsole.log(`route loader`, document.location.pathname);
+
   // check if we got here from login
   if(document.referrer) {
     const url = new URL(document.referrer);
@@ -49,7 +56,7 @@ export const handleMemo = () => {
   if(window.location.pathname.match(/\/memo\/new/)) {
     activatePage('singleMemo');
     const editor = <MemoEditor>(document.getElementById("editor"));
-    editor.new();
+    editor.new_memo();
 
     return;
   }
@@ -62,6 +69,10 @@ export const handleMemo = () => {
     activatePage('memoTitles');
     searchMemos();
   }
+
+  if(window.location.pathname === '/journal') {
+    activatePage('journal');
+  }
 }
 
 /**
@@ -69,7 +80,7 @@ export const handleMemo = () => {
  * @param {string} name 
  */
 const activatePage = (name: string) => {
-  // console.log('Activate', name);
+  konsole.log('Activate page', name);
   [...document.querySelectorAll('[page]')].forEach((art: HTMLElement) => {
     art.style.display = art.id === name ? '' : 'none';
   });
@@ -83,7 +94,9 @@ const activatePage = (name: string) => {
 
 
 document.addEventListener("click", routerInterceptor);
-window.addEventListener('popstate', handleMemo);
+window.addEventListener('popstate', () => {
+  route();
+});
 document.addEventListener(events.NAVIGATE, navigate);
 
 const options: RequestInit = {
@@ -203,6 +216,8 @@ async function loadMemoTitles(force_reload? : boolean) {
 
 const headerStartRegex = /^#+\s+/
 
+const make_memotitle_link_id = (id: number): string => `memo_title_link_${id}`;
+
 /**
  * Renders the list of memo titles in the DOM
  * @param {ServerMemoList} responseJson 
@@ -219,6 +234,7 @@ const displayMemoTitles = async (responseJson: ServerMemoList, auto_open: boolea
     a.style.display = 'block';
     a.href = `/memo/${memo.id}`;
     a.innerText = memo.title;
+    a.id = make_memotitle_link_id(memo.id);
     return a;
   })
   .forEach(memo => {
@@ -229,6 +245,16 @@ const displayMemoTitles = async (responseJson: ServerMemoList, auto_open: boolea
     dest.firstElementChild.dispatchEvent(new CustomEvent('click', {bubbles: true}));
   }
 }
+
+document.addEventListener(events.MEMO_DELETED, (evt:CustomEvent) => {
+  // if the memo was deleted then remove it from the list
+  const memo_link_id = make_memotitle_link_id(evt.detail);
+  const link = document.getElementById(memo_link_id);
+  if(link) {
+    konsole.log(`Got ${events.MEMO_DELETED} event, remove link ${memo_link_id}`);
+    link.parentNode.removeChild(link);
+  }
+});
 
 /**
  * Do a search on the server. If no criteria is present just fetch all titles

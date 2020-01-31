@@ -1,6 +1,6 @@
 import { Memo, ServerMemo, ServerMemoReply, CacheMemo, AccessTime, UpdateMemoLogic, GenericReject, IdName } from './memo_interfaces.js';
 
-import * as pa from './events.js';
+import * as events from './events.js';
 import * as memo_processing from './memo_processing.js';
 import konsole from './console_log.js';
 
@@ -22,7 +22,7 @@ export const get_db = () => {
       db.onerror = event => {
         // Generic error handler for all errors targeted at this database's
         // requests!
-        pa.updateStatus("Database error: " + (<any>event.target).errorCode);
+        events.updateStatus("Database error: " + (<any>event.target).errorCode);
       };
   
       resolve(db);
@@ -187,9 +187,10 @@ export const unsaved_memos = async () => {
 
 /**
  * Deletes a memo and the associated structures
- * @param id 
+ * @param id old memo id
+ * @param new_id new memo id, if it has been renamed, for e.g by saving to server
  */
-export const delete_memo = async (id: number) => {
+export const delete_memo = async (id: number, new_id?: number) => {
   konsole.log('Deleting memo', id);
   const transaction = await get_memo_write_transaction();
   const memo_store = transaction.objectStore("memo");
@@ -201,7 +202,14 @@ export const delete_memo = async (id: number) => {
     new Promise(resolve => {
       access_store.delete(id).onsuccess = () => resolve(true);
     }),
-  ]);
+  ]).then(() => {
+    if(new_id) {
+      events.memo_change_id(id, new_id);
+    } else {
+      konsole.log(`announce memo ${id} has been deleted`);
+      events.memo_deleted(id);
+    }
+  });
 }
 
 export const save_memo_after_saving_to_server = async (old_id: number, server_memo_reply: ServerMemoReply) => {
@@ -214,8 +222,7 @@ export const save_memo_after_saving_to_server = async (old_id: number, server_me
   if(server_memo && old_id < 0) {
     // announce everybody this memo has a new id, especially the editor
     konsole.log(`Memo ${old_id} has been assigned ${server_memo.id} by the server`);
-    await delete_memo(old_id);
-    pa.memo_change_id(old_id, server_memo.id);
+    await delete_memo(old_id, server_memo.id);
   }
   const memo = memo_processing.server2local(server_memo_reply);
   const transaction = await get_memo_write_transaction();

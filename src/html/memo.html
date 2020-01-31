@@ -8,7 +8,7 @@
     <link rel="manifest" href="/org-manifest.json">
     <script type="module">
       import * as router from "/memo-router.js";
-      window.handleMemo = router.handleMemo;
+      window.route = router.route;
       window.searchMemos = router.searchMemos;
     </script>
     <script type="module">
@@ -62,7 +62,7 @@
       }
     </style>
   </head>
-  <body onload="handleMemo()">
+  <body onload="route()">
     <main>
       <section id="singleMemo" page><memo-editor id="editor"></memo-editor></section>
       <section id="memoTitles" page>
@@ -77,6 +77,7 @@
             <a href="/memo/new">New</a>
         </nav>
         <side id="memoTitlesList"></side>
+        <footer style="text-align: right;"><a href="/journal">Journal</a></footer>
       </section>
       <log-journal id="journal" page></log-journal>
     </main>

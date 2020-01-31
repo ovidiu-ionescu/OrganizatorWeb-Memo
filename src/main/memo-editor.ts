@@ -400,6 +400,13 @@ export class MemoEditor extends HTMLElement {
       }
     });
 
+    document.addEventListener(events.MEMO_DELETED, (event: CustomEvent) => {
+      konsole.log(`Received ${events.MEMO_DELETED} event, detail ${event.detail}`);
+      if(this.memoId === event.detail) {
+        this.show_status(`# Memo ${this.memoId} has been deleted`);
+      }
+    });
+
     // save every time we might get rid of the page content
     const save = this.save_local_only.bind(this);
     window.addEventListener('blur',         save);
@@ -407,10 +414,11 @@ export class MemoEditor extends HTMLElement {
     window.addEventListener('pagehide',     save);
     window.addEventListener('pageshow',     save);
     window.addEventListener('popstate',     save);
+    document.addEventListener(events.NAVIGATE,  save);
 
     this.$.journal_button.addEventListener('click', evt => {
       evt.stopPropagation();
-      events.navigate('journal');
+      events.navigate('/journal');
     });
 
   } // end of initialize
@@ -577,9 +585,10 @@ export class MemoEditor extends HTMLElement {
     }
   }
 
-  new() {
+  new_memo() {
     this._memoId = - (+ new Date);
     konsole.log('New memo in editor', this._memoId);
+    window.history.replaceState(null, "", `/memo/${this._memoId}`);
     this.memogroup = null;
     this._user = null;
     this._timestamp = 0;

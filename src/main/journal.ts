@@ -25,9 +25,13 @@ export class Journal extends HTMLElement {
   set entries(lines: string[]) {
     this.$.journal.innerText = '';
     lines.forEach(line => {
-      const p = document.createElement('p');
-      p.innerText = line;
-      this.$.journal.appendChild(p);
+      if(line === '<hr>') {
+        this.$.journal.appendChild(document.createElement('hr'));
+      } else {
+        const p = document.createElement('p');
+        p.innerText = line;
+        this.$.journal.appendChild(p);
+      }
     });
   }
 

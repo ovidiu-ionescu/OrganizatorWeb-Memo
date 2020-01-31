@@ -23,7 +23,7 @@ const routerInterceptor = evt => {
       evt.preventDefault();
       evt.stopPropagation();
 
-      route();
+      load_route();
     }
   }
 };
@@ -33,10 +33,10 @@ export const navigate = (evt:CustomEvent) => {
   konsole.log(new Date().toIsoString(), 'Received event to navigate to', dest);
   history.pushState(null, null, `${dest}`);
   konsole.log('<hr>');
-  route();
+  load_route();
 };
 
-export const route = () => {
+export const load_route = () => {
   konsole.log(`route loader`, document.location.pathname);
 
   // check if we got here from login
@@ -95,7 +95,7 @@ const activatePage = (name: string) => {
 
 document.addEventListener("click", routerInterceptor);
 window.addEventListener('popstate', () => {
-  route();
+  load_route();
 });
 document.addEventListener(events.NAVIGATE, navigate);
 

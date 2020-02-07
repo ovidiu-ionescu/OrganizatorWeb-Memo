@@ -135,7 +135,8 @@ const template = `
         justify-content: space-between;
       }
       #presentation p {
-        overflow-wrap: break-word;
+        overflow-wrap: anywhere;
+        word-break: break-all;
       }
 
     </style>

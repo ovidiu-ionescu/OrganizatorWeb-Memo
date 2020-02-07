@@ -11,8 +11,13 @@ export const get_db = () => {
     const request = window.indexedDB.open(DBName, 1);
 
     request.onerror = event => {
+      konsole.error(`Failed to open database ${(<any>event.target).errorCode}`);
       reject("Why didn't you allow my web app to use IndexedDB?!");
     };
+
+    request.onblocked = event => {
+      konsole.log('Failed to open the database, blocked');
+    }
 
     prepare_db_if_needed(request);
 
@@ -22,7 +27,9 @@ export const get_db = () => {
       db.onerror = event => {
         // Generic error handler for all errors targeted at this database's
         // requests!
-        events.updateStatus("Database error: " + (<any>event.target).errorCode);
+        const msg = "Database error: " + (<any>event.target).errorCode;
+        konsole.error(msg);
+        events.updateStatus(msg);
       };
   
       resolve(db);

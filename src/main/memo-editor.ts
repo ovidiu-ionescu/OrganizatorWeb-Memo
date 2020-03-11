@@ -157,7 +157,6 @@ const template = `
       <img-inline-svg id="checkbox_button" src="/images/ic_done_48px.svg"></img-inline-svg>
       <img-inline-svg id="link_button" src="/images/ic_link_48px.svg"></img-inline-svg>
       <span style="display: inline-block; width: 48px;"></span>
-      <img-inline-svg id="save_button" src="/images/ic_save_48px.svg"></img-inline-svg>
       <img-inline-svg id="save_all_button" src="/images/save_alt-24px.svg"></img-inline-svg>
     </nav>
     <div id="edit_meta">
@@ -351,10 +350,6 @@ export class MemoEditor extends HTMLElement {
       this.$.source.value = s;
     });
 
-    this.$.save_button.addEventListener("click", () => {
-      this.save();
-    });
-
     this.$.save_all_button.addEventListener('click', () => {
       server_comm.save_all();
     });
@@ -491,32 +486,6 @@ export class MemoEditor extends HTMLElement {
     }
   }
 
-  /**
-   * Save the memo to local and remote after encryption
-   */
-  save() {
-    this._encrypt()
-      .then(this.save_to_local.bind(this))
-      .then(this.save_to_server.bind(this));
-  }
-
-  /**
-   * Save the memo body to local storage
-   * @deprecated
-   * @param src
-   * @returns same as input so it can be chained
-   */
-  save_to_local(src: string) {
-    const memo = {
-      id:         this._memoId,
-      text:       src,
-      memogroup:  this._memogroup,
-      timestamp:  + new Date(),
-      readonly:   this._readonly,
-    };
-    return db.save_local_only(memo);
-  }
-
   async save_local_only(event : HasType) {
     const cause = event && event.type || 'no event supplied';
     if(!this._memoId) {
@@ -532,57 +501,6 @@ export class MemoEditor extends HTMLElement {
       events.save_all_status(events.SaveAllStatus.Dirty)
     } else {
       konsole.log(`Save local of memo ${this._memoId} did not happen, we didn't get a new timestamp, old ${this._timestamp}, new ${saved_memo.timestamp}`)
-    }
-  }
-  /**
-   * Persist on the server. This will be chained after validation,
-   * so we can't save secret values in clear
-   * @param {String} src body of the memo
-   */
-  async save_to_server(memo: Memo) {
-    konsole.log("Saving to server");
-    const memogroup = memo.memogroup ? `group_id=${memo.memogroup.id}&` : "";
-    const memoId = memo.id < 0 ? "" : `memoId=${memo.id}&`;
-    const text = `text=${encodeURIComponent(memo.text)}&`;
-    const body = `${memogroup}${memoId}${text}`;
-    //console.log("Saving", body);
-
-    const response = await fetch("/organizator/memo/", {
-      credentials: "include",
-      headers: {
-        Accept: "*/*",
-        "Content-Type": "application/x-www-form-urlencoded",
-        "X-Requested-With": "XMLHttpRequest",
-        Pragma: "no-cache",
-        "Cache-Control": "no-cache",
-        "x-organizator-client-version": "3"
-      },
-      body: body,
-      method: "POST",
-      mode: "cors"
-    });
-
-    if (response.status === 401) {
-      // more info at https://www.w3schools.com/howto/howto_js_redirect_webpage.asp
-      window.location.replace("/login.html");
-      return;
-    } else if (response.status === 200) {
-      /*
-       * Saved successfuly, alter the environment to reflect that.
-       * Update the url to the new memo id if necessary
-       * Update the timestamp of the server memo in local cache
-       */
-      const responseJson = await response.json();
-      // take care of browser history/location;
-      if (!responseJson.memo) {
-        window.history.replaceState(null, "", "/memo/");
-      } else {
-        window.history.replaceState(null, "", `/memo/${responseJson.memo.id}`);
-      }
-      db.save_memo_after_saving_to_server(this._memoId, responseJson.memo);
-      this._memoId = responseJson.memo.id;
-      console.log('Saved on the server');
-      this.$.status.innerText = `Saved at ${new Date()}`;
     }
   }
 

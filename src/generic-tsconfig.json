@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "noImplicitAny": false,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "sourceMap": true,
+    "outDir": "../build",
+    "rootDir": ".",
+    "target": "es2017",
+    "typeRoots": ["types"],
+    "esModuleInterop": true,
+    "composite": true
+  },
+  "exclude": [
+    "node_modules"
+  ]
+}

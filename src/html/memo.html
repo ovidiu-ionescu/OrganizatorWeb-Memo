@@ -7,13 +7,15 @@
     <link rel="apple-touch-icon" sizes="167x167" href="/images/ios/tulip-blue-touch-icon-iphone-retina.png">
     <link rel="manifest" href="/org-manifest.json">
     <script type="module">
-      import * as router from "/memo-router.js";
+      import "/app.js";
+
+      import * as router from "/dom/memo-router.js";
       window.load_route = router.load_route;
       window.searchMemos = router.searchMemos;
     </script>
     <script type="module">
-      import "/memo-editor.js";
-      import "/journal.js";
+      import "/dom/memo-editor.js";
+      import "/dom/journal.js";
     </script>
     <script type="text/javascript"></script>
     <style type="text/css">

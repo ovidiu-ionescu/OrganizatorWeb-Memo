@@ -1,0 +1,14 @@
+{
+  "extends": "../../generic-tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "../../../build/main",
+    "lib": [
+      "esnext",
+      "webworker"
+    ],
+  },
+  "include": [
+    "**/*.ts"
+  ]
+}

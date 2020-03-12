@@ -13,7 +13,7 @@ import init, {
   memo_decrypt,
   memo_encrypt,
   process_markdown
-} from "./pkg/concatenate.js";
+} from "../pkg/concatenate.js";
 
 let WASM_LOADED = false;
 let WASM_LOADING = undefined;

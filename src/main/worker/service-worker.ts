@@ -31,9 +31,9 @@ const assets = [
   '/images/lock-reset.svg',
   '/images/save_alt-24px.svg',
 
-  'app.js',
-  'org-manifest.json',
-  'favicon.ico'
+  '/worker/app.js',
+  '/org-manifest.json',
+  '/favicon.ico'
 ];
 
 // install event
@@ -42,7 +42,7 @@ self.addEventListener('install', (evt:ExtendableEvent) => {
   evt.waitUntil(
     caches.open(staticCacheName).then((cache) => {
       console.log('caching shell assets');
-      cache.addAll(assets);
+      cache.addAll(assets).catch(reason => console.log('Failed to fetch', reason));
     })
   );
 });

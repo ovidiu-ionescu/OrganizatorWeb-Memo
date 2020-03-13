@@ -211,6 +211,8 @@ async function loadMemoTitles(force_reload? : boolean) {
     return;
   } else if (response.status === 200) {
     const responseJson = await response.json();
+    const new_memos = await db.get_new_memos();
+    responseJson.memos = [ ... new_memos, ...responseJson.memos];
     displayMemoTitles(responseJson, false);
     //console.log(responseJson);
   }

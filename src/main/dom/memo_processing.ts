@@ -148,3 +148,23 @@ export const toggle_checkbox = (text: string, index: number): string => {
     }
   }
 }
+
+export const make_server_memo_title = (cache_memo: CacheMemo): ServerMemoTitle => {
+  const memo_group = cache_memo.local.memogroup;
+  const group_id = memo_group && memo_group.id;
+  const userId = cache_memo.local.user && cache_memo.local.user.id;
+  const text = cache_memo.local.text;
+  let title = 'No title found';
+  if(!text) {
+    konsole.log('A degenerate memo', cache_memo.id);
+  } else {
+    title = text.split('\n')[0];
+  }
+  const result = {
+    group_id,
+    id: cache_memo.id,
+    title, 
+    userId
+  }
+  return result;
+}

@@ -1,4 +1,4 @@
-import { Memo, ServerMemo, ServerMemoReply, CacheMemo, AccessTime, UpdateMemoLogic, GenericReject, IdName } from './memo_interfaces.js';
+import { Memo, ServerMemo, ServerMemoTitle, ServerMemoReply, CacheMemo, AccessTime, UpdateMemoLogic, GenericReject, IdName } from './memo_interfaces.js';
 
 import * as events from './events.js';
 import * as memo_processing from './memo_processing.js';
@@ -64,6 +64,11 @@ const update_access_time = async (transaction: IDBTransaction, id: number) => {
 const get_memo_write_transaction = async () => {
   const db = await get_db();
   return db.transaction(["memo", "memo_access"], "readwrite");
+}
+
+const get_memo_read_transaction = async () => {
+  const db = await get_db();
+  return db.transaction(["memo"], "readonly");
 }
 
 /**
@@ -238,4 +243,29 @@ export const save_memo_after_saving_to_server = async (old_id: number, server_me
   // not sure if access time should be this one, it could be just a batch save
   await update_access_time(transaction, memo.id);
   return memo;
+}
+
+/**
+ * Creates a list of new memos, id < 0
+ */
+export const get_new_memos = async (): Promise<Array<ServerMemoTitle>> =>  {
+  const transaction = await get_memo_read_transaction();
+  const memo_store = transaction.objectStore("memo");
+
+  return new Promise(resolve => {
+    const result = [];
+    memo_store.openCursor().onsuccess = (event) => {
+      const cursor:IDBCursorWithValue = (event.target as IDBRequest).result;
+      if(cursor) {
+        const cache_memo:CacheMemo = cursor.value;
+        if(cache_memo.id > 0) {
+          return resolve(result);
+        }
+        result.push(memo_processing.make_server_memo_title(cache_memo))
+        cursor.continue();
+      } else {
+        return resolve(result);
+      }
+    }
+  });
 }

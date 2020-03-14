@@ -122,6 +122,9 @@ const headerStartRegex = /^#+\s+/
  */
 export const make_title_list = (titles: ServerMemoTitle[], access_times: AccessTime[]): ServerMemoTitle[] => {
   const access_times_map: Record<number, number> = access_times.reduce((a, t) => { a[t.id] = t.last_access; return a; }, {});
+  if(!titles) {
+    return [];
+  }
   return titles.map(
     memo => ({ ...memo, title: memo.title.split('\r').join('')})
   )

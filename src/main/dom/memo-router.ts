@@ -214,6 +214,7 @@ async function loadMemoTitles(force_reload? : boolean) {
       const responseJson = await response.json();
       const new_memos = await db.get_new_memos();
       responseJson.memos = [ ... new_memos, ...responseJson.memos];
+      await db.general_store_put('user', responseJson.user);
       displayMemoTitles(responseJson, false);
       //console.log(responseJson);
       return;
@@ -224,7 +225,7 @@ async function loadMemoTitles(force_reload? : boolean) {
     konsole.error('Failed to fetch memo list', e);
   }
   konsole.log('Get all memos from indexedDB');
-  displayMemoTitles({ memo: null, memos: await db.get_all_memos() }, false);
+  displayMemoTitles({ memo: await db.general_store_get('user'), memos: await db.get_all_memos() }, false);
 }
 
 const headerStartRegex = /^#+\s+/

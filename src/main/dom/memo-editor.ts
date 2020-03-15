@@ -350,7 +350,8 @@ export class MemoEditor extends HTMLElement {
       this.$.source.value = s;
     });
 
-    this.$.save_all_button.addEventListener('click', () => {
+    this.$.save_all_button.addEventListener('click', async () => {
+      await this.save_local_only({type: 'Sync with server'});
       server_comm.save_all();
     });
 

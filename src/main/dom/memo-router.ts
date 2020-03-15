@@ -201,22 +201,30 @@ async function loadMemoTitles(force_reload? : boolean) {
       return;
     }
   }
-  const response = await fetch(
-    `/organizator/memo/?request.preventCache=${+new Date()}`,
-    options
-  );
-  if (response.status === 401) {
-    // more info at https://www.w3schools.com/howto/howto_js_redirect_webpage.asp
-    window.location.replace("/login.html");
-    return;
-  } else if (response.status === 200) {
-    const responseJson = await response.json();
-    const new_memos = await db.get_new_memos();
-    responseJson.memos = [ ... new_memos, ...responseJson.memos];
-    displayMemoTitles(responseJson, false);
-    //console.log(responseJson);
+  try {
+    const response = await fetch(
+      `/organizator/memo/?request.preventCache=${+new Date()}`,
+      options
+    );
+    if (response.status === 401) {
+      // more info at https://www.w3schools.com/howto/howto_js_redirect_webpage.asp
+      window.location.replace("/login.html");
+      return;
+    } else if (response.status === 200) {
+      const responseJson = await response.json();
+      const new_memos = await db.get_new_memos();
+      responseJson.memos = [ ... new_memos, ...responseJson.memos];
+      displayMemoTitles(responseJson, false);
+      //console.log(responseJson);
+      return;
+    } else {
+      konsole.error('Failed to fetch memo list, server status', response.status);
+    }
+  } catch(e) {
+    konsole.error('Failed to fetch memo list', e);
   }
-
+  konsole.log('Get all memos from indexedDB');
+  displayMemoTitles({ memo: null, memos: await db.get_all_memos() }, false);
 }
 
 const headerStartRegex = /^#+\s+/
@@ -226,6 +234,7 @@ const make_memotitle_link_id = (id: number): string => `memo_title_link_${id}`;
 /**
  * Renders the list of memo titles in the DOM
  * @param {ServerMemoList} responseJson 
+ * @param auto_open if the list has only one element then open it in the editor immediately
  */
 const displayMemoTitles = async (responseJson: ServerMemoList, auto_open: boolean) => {
   const dest = document.getElementById('memoTitlesList');

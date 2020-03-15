@@ -140,15 +140,25 @@ export const read_memo = async (id: number): Promise<ServerMemoReply> => {
 }
 
 export const read_memo_groups = async(): Promise<IdName[]> => {
-  const server_response = await fetch(`/organizator/memogroup/?request.preventCache=${+new Date()}`, get_options);
-  if (server_response.status === 200) {
-    const json = await server_response.json();
-    return json.memogroups;
-  } else {
-    konsole.error('Failed to fetch memogroups', server_response.status);
-    throw {
-      errorCode: server_response.status,
-      message: `Failed to fetch memogroups`,
-    };
+  try {
+    const server_response = await fetch(`/organizator/memogroup/?request.preventCache=${+new Date()}`, get_options);
+    if (server_response.status === 200) {
+      const json = await server_response.json();
+      const memogroups = json.memogroups;
+      db.general_store_put("memogroups", memogroups);
+      return memogroups;
+    } else {
+      konsole.error('Failed to fetch memogroups, server status', server_response.status);
+    }
+  } catch(e) {
+    konsole.log('Failed to fetch memogroups, error', e);
   }
+  const stored_memogroups = await db.general_store_get("memogroups");
+  if(stored_memogroups) {
+    konsole.log('Serve memogroups cached in general store');
+    return stored_memogroups;
+  }
+  throw {
+      message: `Failed to fetch memogroups`,
+  };
 }

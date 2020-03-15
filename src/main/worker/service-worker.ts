@@ -1,4 +1,4 @@
-const staticCacheName = 'site-static-v3';
+const staticCacheName = 'site-static-v5';
 const assets = [
   '/memo/',
   '/dom/memo-router.js',
@@ -45,6 +45,7 @@ self.addEventListener('install', (evt:ExtendableEvent) => {
       cache.addAll(assets).catch(reason => console.log('Failed to fetch', reason));
     })
   );
+  (self as unknown as ServiceWorkerGlobalScope).skipWaiting();
 });
 
 // activate event

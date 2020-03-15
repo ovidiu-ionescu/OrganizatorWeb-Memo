@@ -8,7 +8,7 @@ export const DBName = "MemoDatabase";
 
 export const get_db = () => {
   return new Promise<IDBDatabase>((resolve, reject) => {
-    const request = window.indexedDB.open(DBName, 1);
+    const request = window.indexedDB.open(DBName, 2);
 
     request.onerror = event => {
       konsole.error(`Failed to open database ${(<any>event.target).errorCode}`);
@@ -39,15 +39,20 @@ export const get_db = () => {
 
 const prepare_db_if_needed = (request: IDBOpenDBRequest) => {
   // This event is only implemented in recent browsers   
-  request.onupgradeneeded = event => { 
+  request.onupgradeneeded = event => {
     // Save the IDBDatabase interface 
     konsole.log('Request onupgradeneeded', event);
     const db = (event.target as IDBOpenDBRequest).result;
 
-    konsole.log('Create an objectStore for this database');
-    const memo_store = db.createObjectStore("memo", { keyPath: "id" });
-    const access_store = db.createObjectStore("memo_access", { keyPath: "id" });
-    access_store.createIndex("last", "last_access");
+    if(event.oldVersion < 1) {
+      konsole.log('Create an objectStore for this database');
+      const memo_store = db.createObjectStore("memo", { keyPath: "id" });
+      const access_store = db.createObjectStore("memo_access", { keyPath: "id" });
+      access_store.createIndex("last", "last_access");
+    }
+    if(event.oldVersion < 2) {
+      const general_store = db.createObjectStore("general_store", {keyPath: "id"});
+    }
   }
 }
 
@@ -248,7 +253,7 @@ export const save_memo_after_saving_to_server = async (old_id: number, server_me
 /**
  * Creates a list of new memos, id < 0
  */
-export const get_new_memos = async (): Promise<Array<ServerMemoTitle>> =>  {
+const get_memo_titles = async (id_limit: number): Promise<Array<ServerMemoTitle>> =>  {
   const transaction = await get_memo_read_transaction();
   const memo_store = transaction.objectStore("memo");
 
@@ -258,7 +263,7 @@ export const get_new_memos = async (): Promise<Array<ServerMemoTitle>> =>  {
       const cursor:IDBCursorWithValue = (event.target as IDBRequest).result;
       if(cursor) {
         const cache_memo:CacheMemo = cursor.value;
-        if(cache_memo.id > 0) {
+        if(cache_memo.id > id_limit) {
           return resolve(result);
         }
         result.push(memo_processing.make_server_memo_title(cache_memo))
@@ -269,3 +274,38 @@ export const get_new_memos = async (): Promise<Array<ServerMemoTitle>> =>  {
     }
   });
 }
+
+export const get_new_memos = () => get_memo_titles(0);
+export const get_all_memos = () => get_memo_titles(Infinity);
+
+
+const store_put = async (id: string, value: any, store_name: string) => {
+  const db = await get_db();
+  const transaction = db.transaction([store_name], "readwrite");
+  const memo_store = transaction.objectStore(store_name);
+  const payload = {id, value};
+  const request = memo_store.put(payload);
+  return new Promise<CacheMemo>((resolve) => {
+    request.onsuccess = () => {
+      resolve(value);
+    }
+  }); 
+
+}
+
+const store_get = async (key: string, store_name: string) => {
+  const db = await get_db();
+  const transaction = db.transaction([store_name], "readonly");
+  const request = transaction.objectStore(store_name).get(key);
+  return new Promise<any>((resolve) => {
+    request.onsuccess = () => {
+      if(request.result) {
+        resolve(request.result.value);
+      }
+      resolve(null);
+    }
+  }); 
+}
+
+export const general_store_put = async (key: string, value: any) => store_put(key, value, "general_store");
+export const general_store_get = async (key: string) => store_get(key, "general_store");

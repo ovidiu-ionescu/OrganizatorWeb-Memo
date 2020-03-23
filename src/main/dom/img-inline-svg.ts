@@ -1,5 +1,10 @@
-export class ImgInlineSvg extends HTMLElement {
+/**
+ * @prettier
+ *
+ * Inlines an SVG image so that it can be manipulated by CSS
+ */
 
+export class ImgInlineSvg extends HTMLElement {
   _color() {
     const fillColor = getComputedStyle(this).color || "white";
     const svg = this.shadowRoot.querySelector("svg");
@@ -13,8 +18,8 @@ export class ImgInlineSvg extends HTMLElement {
     const imgSrc = this.getAttribute("src");
     const shadow = this.attachShadow({ mode: "open" });
     fetch(imgSrc)
-      .then(response => response.text())
-      .then(text => {
+      .then((response) => response.text())
+      .then((text) => {
         const mySvg = text;
         shadow.innerHTML = `
         <style>
@@ -41,7 +46,6 @@ export class ImgInlineSvg extends HTMLElement {
   }
 
   attributeChangedCallback(name: string, oldValue: string, newValue: string) {
-
     if (name === "style") {
       this._color();
     }

@@ -1,12 +1,7 @@
 {
   "extends": "../../generic-tsconfig.json",
   "compilerOptions": {
-    "lib": [
-      "esnext",
-      "webworker"
-    ],
+    "lib": ["esnext", "webworker"]
   },
-  "include": [
-    "**/*.ts"
-  ]
+  "include": ["**/*.ts"]
 }

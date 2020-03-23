@@ -1,8 +1,5 @@
 {
   "extends": "../../generic-tsconfig.json",
-  "compilerOptions": {
-  },
-  "include": [
-    "**/*.ts"
-  ]
+  "compilerOptions": {},
+  "include": ["**/*.ts"]
 }

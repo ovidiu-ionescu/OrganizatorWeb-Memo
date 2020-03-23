@@ -1,6 +1,12 @@
+/**
+ * @prettier
+ *
+ * Component that builds drop down list
+ */
+
 import { IdName } from "./memo_interfaces.js";
-import {read_memo_groups} from './server_comm.js';
-import konsole from './console_log.js';
+import { read_memo_groups } from "./server_comm.js";
+import konsole from "./console_log.js";
 
 class GroupList extends HTMLElement {
   private _groups: IdName[];
@@ -13,7 +19,7 @@ class GroupList extends HTMLElement {
 
   async initialize() {
     const shadow = this.attachShadow({ mode: "open" });
-    
+
     shadow.innerHTML = `
       <style type="text/css">
         * {
@@ -35,27 +41,30 @@ class GroupList extends HTMLElement {
         <option value="-1" style="text-align:center;"> --- </option>
       </select>
     `;
-    if(!this._groups) {
+    if (!this._groups) {
       this._groups = await this._fetch_elements();
     }
 
-    const sel = this.shadowRoot.querySelector('#main_select');
-    this._groups.map(
-      group => { 
-        const opt = document.createElement('option');
-        opt.setAttribute('value', group.id.toString());
+    const sel = this.shadowRoot.querySelector("#main_select");
+    this._groups
+      .map((group) => {
+        const opt = document.createElement("option");
+        opt.setAttribute("value", group.id.toString());
         opt.innerText = group.name;
         return opt;
-    }).forEach(opt => { sel.appendChild(opt) });
+      })
+      .forEach((opt) => {
+        sel.appendChild(opt);
+      });
   }
 
   get memogroup() {
     const sel = parseInt(this._getSelect().value);
-    return this._groups.find(e => e.id === sel);
+    return this._groups.find((e) => e.id === sel);
   }
 
   set value(v: string) {
-    this._getSelect().value  = '' + v;
+    this._getSelect().value = "" + v;
   }
 
   get value() {
@@ -63,16 +72,16 @@ class GroupList extends HTMLElement {
   }
 
   _getSelect() {
-    return (this.shadowRoot.querySelector('#main_select') as HTMLInputElement);
+    return this.shadowRoot.querySelector("#main_select") as HTMLInputElement;
   }
 }
 
 export class MemoGroupList extends GroupList {
   constructor() {
     super(read_memo_groups);
-    konsole.log('MemoGroupList constructor')
+    konsole.log("MemoGroupList constructor");
   }
 }
 
-konsole.log('Registering memogroup web component');
+konsole.log("Registering memogroup web component");
 customElements.define("memogroup-list", MemoGroupList);

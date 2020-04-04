@@ -19,6 +19,7 @@ import * as events from "./events.js";
 import "./img-inline-svg.js";
 import "./group-list.js";
 import * as memo_processing from "./memo_processing.js";
+import { alignedText } from "./util.js";
 
 import init, {
   concatenate,
@@ -172,6 +173,7 @@ const template = `
       <img-inline-svg id="today_button" src="/images/ic_today_48px.svg"></img-inline-svg>
       <img-inline-svg id="checkbox_button" src="/images/ic_done_48px.svg"></img-inline-svg>
       <img-inline-svg id="link_button" src="/images/ic_link_48px.svg"></img-inline-svg>
+      <img-inline-svg id="table_button" src="/images/ic_view_module_48px.svg"></img-inline-svg>
       <span style="display: inline-block; width: 48px;"></span>
       <img-inline-svg id="save_all_button" src="/images/save_alt-24px.svg"></img-inline-svg>
     </nav>
@@ -372,6 +374,21 @@ export class MemoEditor extends HTMLElement {
       } catch (error) {}
       s = s.slice(0, end_offset) + ")" + s.slice(end_offset);
       s = s.slice(0, start_offset) + `[${text}](` + s.slice(start_offset);
+      this.$.source.value = s;
+    });
+
+    this.$.table_button.addEventListener("click", async () => {
+      const start_offset = this.$.source.selectionStart;
+      let s = this.$.source.value;
+      s =
+        s.slice(0, start_offset) +
+        alignedText`
+      | head1 | head2 |  | 
+      |:---|---|---:|
+      | cell 1 | cell2 |  |
+      |  |  |  |
+      ` +
+        s.slice(start_offset);
       this.$.source.value = s;
     });
 

@@ -1,7 +1,7 @@
-import { Memo, ServerMemo, CacheMemo, AccessTime } from '../../../main/memo_interfaces.js';
+import { Memo, ServerMemo, CacheMemo, AccessTime } from '../../../main/dom/memo_interfaces.js';
 
-import * as db from '../../../main/memo_db.js';
-import { sendMessageEvent } from '../../../main/events.js';
+import * as db from '../../../main/dom/memo_db.js';
+import { sendMessageEvent } from '../../../main/dom/events.js';
 
 describe("Testing the database functions", () => {
   before(() => {
@@ -61,7 +61,8 @@ describe("Testing the database functions", () => {
       user: {
         id:      1,
         name:    'root'
-      }
+      },
+      readonly: true
     });
 
     const access_times = await db.access_times();
@@ -138,7 +139,8 @@ describe("Testing the database functions", () => {
         name:   'username'
       },
       text:    'Title 3\nBody3',
-      timestamp: 200 
+      timestamp: 200,
+      readonly: true
     });
   });
 

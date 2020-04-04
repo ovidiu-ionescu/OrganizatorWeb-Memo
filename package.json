@@ -4,8 +4,9 @@
   "description": "Web interface for memos in Organizator",
   "main": "index.js",
   "scripts": {
-    "build:dom": "tsc --build src/main/dom",
+    "build:dom": "tsc --build src",
     "build:worker": "tsc --build src/main/worker",
+    "build:tests": "tsc --build src/test",
     "copy:js": "rsync -r src/main/dom/*.js build/main/dom",
     "copy:html": "rsync -r src/html/ build/main",
     "copy:images": "rsync -r images build/main/",

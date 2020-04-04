@@ -7,7 +7,7 @@
     "outDir": "../build",
     "rootDir": ".",
     "target": "es2017",
-    "typeRoots": ["types"],
+    "typeRoots": ["../types"],
     "esModuleInterop": true,
     "composite": true
   },

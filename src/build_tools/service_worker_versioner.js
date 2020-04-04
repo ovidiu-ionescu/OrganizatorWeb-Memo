@@ -32,14 +32,14 @@ const scan_dir = (dir, exclude) => {
     .filter(f => !exclude.has(f))
     .filter(f => !f.match(/.+\.d\.ts$/))
     .map(f => f.replace(/\.ts$/, '.js'))
-    .map(f => `    "${suf}/${f}",\n`)
-    .reduce((acc, v) => acc + v);
+    .map(f => `"${suf}/${f}"`)
+    .reduce((acc, v) => { acc.push(v); return acc; }, []);
 };
 
 const get_all_files = () => {
   return dirs
-    .map(d => scan_dir(d, exclude))
-    .reduce((acc, v) => acc + v).slice(4, -2);
+    .flatMap(d => scan_dir(d, exclude))
+    .join(',\n    ');
 };
 
 const populate_markers = () => {

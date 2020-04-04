@@ -26,6 +26,7 @@ import init, {
   memo_decrypt,
   memo_encrypt,
   process_markdown,
+  truncate_base64,
 } from "../pkg/concatenate.js";
 
 let WASM_LOADED = false;
@@ -148,8 +149,10 @@ const template = `
         justify-content: space-between;
       }
       #presentation p {
+/*
         overflow-wrap: anywhere;
         word-break: break-all;
+*/
       }
 
     </style>
@@ -184,7 +187,7 @@ const template = `
     <div id="modal_password">
     <div id="password_dialog">
       <p>Enter password</p>
-      <input id="password" type="text">
+      <input id="password" type="password">
       
       <footer>
       <img id="done_password" src="/images/ic_done_48px.svg">
@@ -293,12 +296,13 @@ export class MemoEditor extends HTMLElement {
     });
 
     this.$.decrypt_button.addEventListener("click", async () => {
+      konsole.log(`Starting decryption of memo ${this._memoId}`);
       const password = await this._get_password();
       const clear_text = memo_decrypt(this.$.source.value, password);
       if (this._edit) {
         this.value = clear_text;
       } else {
-        this.$.presentation.innerHTML = process_markdown(clear_text);
+        this.$.presentation.innerHTML = process_markdown(clear_text, 16);
       }
     });
 
@@ -488,7 +492,7 @@ export class MemoEditor extends HTMLElement {
       text = "```\n" + text + "\n```";
     }
     loadWasm().then(() => {
-      this.$.presentation.innerHTML = process_markdown(text);
+      this.$.presentation.innerHTML = process_markdown(text, 16);
     });
   }
 

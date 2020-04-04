@@ -11,7 +11,9 @@
     "copy:images": "rsync -r images build/main/",
     "jasmine": "karma start karma.jasmine.conf.js",
     "mocha": "karma start karma.mocha.conf.js",
-    "build": "npm-run-all build:dom build:worker copy:js copy:html copy:images",
+    "worker:delete": "node src/build_tools/service_worker_delete.js",
+    "worker:increment": "node src/build_tools/service_worker_versioner.js",
+    "build": "run-s build:dom worker:delete build:worker worker:increment copy:js copy:html copy:images",
     "test": "npm-run-all build mocha",
     "_test": "echo \"Error: no test specified\" && exit 1",
     "prettier": "prettier --require-pragma --write src"

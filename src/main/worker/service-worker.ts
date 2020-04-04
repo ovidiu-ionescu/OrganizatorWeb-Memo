@@ -4,7 +4,7 @@
  * Service worker
  */
 
-const staticCacheName = "site-static-v7";
+const staticCacheName = "site-static-v{AUTOINCREMENT_CACHE_VERSION}";
 const assets = [
   "/memo/",
   "/dom/memo-router.js",

@@ -2,6 +2,7 @@
   "extends": "../../generic-tsconfig.json",
   "compilerOptions": {
     "lib": ["esnext", "webworker"],
+    "outDir": "../../../build_worker",
   },
   "include": ["**/*.ts"]
 }

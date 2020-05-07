@@ -2,6 +2,7 @@
  * @prettier
  *
  * Service worker
+ * https://developers.google.com/web/updates/2019/09/fresher-sw
  */
 
 const staticCacheName = "site-static-v{AUTOINCREMENT_CACHE_VERSION}";

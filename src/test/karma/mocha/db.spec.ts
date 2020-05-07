@@ -147,5 +147,44 @@ describe("Testing the database functions", () => {
   it('should return null when reading a non cached memo', async () => {
     expect(await db.read_memo(100)).to.be.null;
   });
+
+  it('should see a memo as ready to be saved if local has a timestamp and server has not', async() => {
+    const cache_memo: CacheMemo = {
+      "id":3,
+      "local": {
+        "id":3,
+        "memogroup": {
+          "id":1,
+          "name":"Group"
+        },
+        "text":"# Saturday Night\nThis is a another memo",
+        "user": {
+          "id":1,
+          "name":"root"
+        },
+        "timestamp":1000,
+        "readonly":false},
+        "server": {
+          "id":3,
+          "text":"Saturday Night\nThis is a another memo",
+          "memogroup": {
+            "id":1,
+            "name":"Group"
+          },
+          "user": {
+            "id":1,
+            "name":"root"
+          }
+        }
+      };
+
+    const transaction = await db.get_memo_write_transaction();
+    await db.raw_write_memo(transaction, cache_memo);
+    const unsaved = await db.unsaved_memos();
+    unsaved.map(m => m.id).forEach(id => console.log('to save: ', id));
+    expect(unsaved.length).to.be.at.least(1);;
+    expect(unsaved.map(m => m.id)).to.include(3);
+  });
+
   // it('', async () => {});
 });

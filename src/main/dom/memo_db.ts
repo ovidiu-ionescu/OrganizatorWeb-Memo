@@ -86,7 +86,7 @@ const update_access_time = async (transaction: IDBTransaction, id: number) => {
   });
 };
 
-const get_memo_write_transaction = async () => {
+export const get_memo_write_transaction = async () => {
   const db = await get_db();
   return db.transaction(["memo", "memo_access"], "readwrite");
 };
@@ -117,7 +117,7 @@ const raw_read_memo = (transaction: IDBTransaction, id: number) => {
  * @param transaction
  * @param db_memo
  */
-const raw_write_memo = (
+export const raw_write_memo = (
   transaction: IDBTransaction,
   db_memo: CacheMemo
 ): Promise<CacheMemo> => {
@@ -240,7 +240,7 @@ export const unsaved_memos = async () => {
       const cached_memos: Array<CacheMemo> = (<IDBRequest>event.target).result;
       // konsole.log(JSON.stringify(cached_memos, null, 2));
       const unsaved_memos = cached_memos.filter(
-        (m) => !m.server || m.local.timestamp > m.server.timestamp
+        memo_processing.should_save_memo_to_server
       );
       konsole.log("unsaved memos:", unsaved_memos.map((m) => m.id).join(" "));
       resolve(unsaved_memos);

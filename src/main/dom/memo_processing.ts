@@ -209,3 +209,20 @@ export const make_server_memo_title = (
   };
   return result;
 };
+
+/**
+ * turns undefined into zero
+ */
+const to_zero = (u?: number) => {
+  if(!u) return 0;
+  return u;
+}
+
+export const should_save_memo_to_server = (cache_memo: CacheMemo): boolean => {
+  // no server correspondent, must be a new memo, save it
+  if(!cache_memo.server) {
+    return true;
+  }
+  if(to_zero(cache_memo.local.timestamp) > to_zero(cache_memo.server.timestamp)) return true;
+  return false;
+}

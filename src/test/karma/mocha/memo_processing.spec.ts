@@ -1,3 +1,6 @@
+/*
+ * https://www.chaijs.com/api/bdd/
+ */
 import { Memo, ServerMemo, CacheMemo, AccessTime } from '../../../main/dom/memo_interfaces.js';
 import * as memo_processing from '../../../main/dom/memo_processing.js';
 

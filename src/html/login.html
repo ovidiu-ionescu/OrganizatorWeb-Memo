@@ -227,9 +227,17 @@
                 "mode": "cors"
             });
             console.log(response);
-            if(response.status === 204 && document.referrer) {
-                console.log("Going to ", document.referrer);
-                return window.location.replace(document.referrer);
+            if(response.status === 204) {
+                let prev_location = "";
+                if(document.referrer) {
+                    prev_location = document.referrer;
+                } else if (window.location.search.substring(3)) {
+                    prev_location = decodeURIComponent(window.location.search.substring(3));
+                }
+                if(prev_location) {
+                    console.log("Going to ", prev_location);
+                    return window.location.replace(prev_location);
+                }
             }
         }
 

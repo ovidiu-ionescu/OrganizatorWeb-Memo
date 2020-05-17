@@ -60,7 +60,8 @@ const prepare_db_if_needed = (request: IDBOpenDBRequest) => {
     konsole.log("Request onupgradeneeded", event);
     const db = (event.target as IDBOpenDBRequest).result;
 
-    if (event.oldVersion < 1) {
+    let old_version = event.oldVersion ? event.oldVersion : 0;
+    if (old_version < 1) {
       konsole.log("Create an objectStore for this database");
       const memo_store = db.createObjectStore("memo", { keyPath: "id" });
       const access_store = db.createObjectStore("memo_access", {
@@ -68,7 +69,7 @@ const prepare_db_if_needed = (request: IDBOpenDBRequest) => {
       });
       access_store.createIndex("last", "last_access");
     }
-    if (event.oldVersion < 2) {
+    if (old_version < 2) {
       const general_store = db.createObjectStore("general_store", {
         keyPath: "id",
       });

@@ -5,3 +5,5 @@ Old
 build
 types
 node_modules
+*.swp
+

@@ -170,7 +170,7 @@ async function loadMemo() {
   );
   if (response.status === 401) {
     // more info at https://www.w3schools.com/howto/howto_js_redirect_webpage.asp
-    window.location.replace("/login.html");
+    window.location.replace(`/login.html?r=${encodeURIComponent(window.location.href)}`);
     return;
   } else if (response.status === 200) {
     const json = await response.json();
@@ -221,7 +221,7 @@ async function loadMemoTitles(force_reload?: boolean) {
     );
     if (response.status === 401) {
       // more info at https://www.w3schools.com/howto/howto_js_redirect_webpage.asp
-      window.location.replace("/login.html");
+      window.location.replace(`/login.html?r=${encodeURIComponent(window.location.href)}`);
       return;
     } else if (response.status === 200) {
       const responseJson = await response.json();

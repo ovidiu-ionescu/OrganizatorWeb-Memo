@@ -163,7 +163,7 @@ const template = `
     <img-inline-svg id="decrypt_button" src="/images/ic_lock_open_48px.svg"></img-inline-svg>
     <img-inline-svg id="encrypt_button" src="/images/ic_lock_48px.svg"></img-inline-svg>
     <img-inline-svg id="edit_button" src="/images/ic_create_48px.svg"></img-inline-svg>
-    <img-inline-svg id="journal_button" src="/images/ic_inbox_48px.svg"></img-inline-svg>
+    <img-inline-svg id="journal_button" src="/images/menu_book-white-48dp.svg"></img-inline-svg>
     </nav>
     <!-- <img id="expand_img" src="/images/ic_expand_more_48px.svg"> -->
     <div id="presentation">Loading...</div>

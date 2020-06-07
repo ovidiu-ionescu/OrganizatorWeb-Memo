@@ -14,6 +14,7 @@ import {
   PasswordThen,
   IdName,
   HasType,
+  GroupList,
 } from "./memo_interfaces.js";
 import * as events from "./events.js";
 import "./img-inline-svg.js";
@@ -159,21 +160,22 @@ const template = `
     </style>
     <div id="container">
     <nav id="toolbar">
-    <img-inline-svg id="password_button" src="/images/lock-reset.svg"></img-inline-svg>
+    <img-inline-svg id="password_button" src="/images/vpn_key-white-48dp.svg"></img-inline-svg>
     <img-inline-svg id="decrypt_button" src="/images/ic_lock_open_48px.svg"></img-inline-svg>
     <img-inline-svg id="encrypt_button" src="/images/ic_lock_48px.svg"></img-inline-svg>
     <img-inline-svg id="edit_button" src="/images/ic_create_48px.svg"></img-inline-svg>
+    <img-inline-svg id="share_button" src="/images/share-white-48dp.svg"></img-inline-svg>
     <img-inline-svg id="journal_button" src="/images/menu_book-white-48dp.svg"></img-inline-svg>
     </nav>
     <!-- <img id="expand_img" src="/images/ic_expand_more_48px.svg"> -->
     <div id="presentation">Loading...</div>
     <div id="editing" style="display: none">
     <nav id="edit_toolbar">
-      <img-inline-svg id="crypto_button" src="/images/ic_insert_comment_48px.svg"></img-inline-svg>
       <img-inline-svg id="today_button" src="/images/ic_today_48px.svg"></img-inline-svg>
-      <img-inline-svg id="checkbox_button" src="/images/ic_done_48px.svg"></img-inline-svg>
+      <img-inline-svg id="checkbox_button" src="/images/check_box-white-48dp.svg"></img-inline-svg>
       <img-inline-svg id="link_button" src="/images/ic_link_48px.svg"></img-inline-svg>
-      <img-inline-svg id="table_button" src="/images/ic_view_module_48px.svg"></img-inline-svg>
+      <img-inline-svg id="table_button" src="/images/border_all-white-48dp.svg"></img-inline-svg>
+      <img-inline-svg id="crypto_button" src="/images/enhanced_encryption-white-48dp.svg"></img-inline-svg>
       <span style="display: inline-block; width: 48px;"></span>
       <img-inline-svg id="save_all_button" src="/images/save_alt-24px.svg"></img-inline-svg>
     </nav>
@@ -324,6 +326,10 @@ export class MemoEditor extends HTMLElement {
       } else {
         this._show_editor();
       }
+    });
+
+    this.$.share_button.addEventListener("click", () => {
+      this._show_sharing();
     });
 
     this.$.crypto_button.addEventListener("click", async () => {
@@ -553,13 +559,7 @@ export class MemoEditor extends HTMLElement {
     const saved_memo = await db.save_local_only(await this.get_memo());
     if (saved_memo.timestamp > this._timestamp) {
       konsole.log(
-        `save_local_only ${
-          this._memoId
-        }, save happened, current timestamp: ${new Date(
-          this._timestamp
-        ).toIsoString()}, cache timestamp ${new Date(
-          saved_memo.timestamp
-        ).toIsoString()}`
+        `save_local_only ${this._memoId}, save happened, trigger dirty green, current timestamp: ${new Date(this._timestamp).toIsoString()}, cache timestamp ${new Date(saved_memo.timestamp).toIsoString()}`
       );
       this._timestamp = saved_memo.timestamp;
       this._display_timestamp();
@@ -591,7 +591,7 @@ export class MemoEditor extends HTMLElement {
     const encrypted_source = await this._encrypt();
     const result = {
       id: this._memoId,
-      memogroup: (this.$.edit_memogroup as any).memogroup,
+      memogroup: (this.$.edit_memogroup as unknown as GroupList).memogroup,
       text: encrypted_source,
       user: this._user,
       timestamp: this._timestamp,
@@ -645,6 +645,39 @@ export class MemoEditor extends HTMLElement {
       return "";
     }
     this.$.edit_timestamp.innerText = new Date(this._timestamp).toIsoString();
+  }
+
+  async _show_sharing() {
+    const memogroup_id = (this.$.edit_memogroup as unknown as GroupList)?.memogroup?.id;
+    if(!memogroup_id) {
+      konsole.log(`Memo ${this._memoId} has no extra permissions`);
+      return;
+    }
+    const DIVID = "explicit_permissions";
+    let perm_div = this.$.presentation.querySelector(`#${DIVID}`);
+    if(perm_div) {
+      konsole.log(`Hide explicit permissions for memo ${this._memoId}`)
+      perm_div.parentNode.removeChild(perm_div);
+      return;
+    }
+
+    const permission_lines = await server_comm.get_explicit_permission(memogroup_id);
+    perm_div = document.createElement("div");
+    perm_div.id = DIVID;
+    this.$.presentation.insertBefore(perm_div, this.$.presentation.firstChild);
+    const title = document.createElement("h3");
+    title.innerText = permission_lines?.length ? permission_lines[0].memo_group_name : `No extra rights defined`;
+    perm_div.appendChild(title);
+    const dl = perm_div.appendChild(document.createElement("dl"));
+    let ug = "";
+    const PERM = [' ', 'R', 'W'];
+    permission_lines.forEach(p => {
+      if(p.user_group_name != ug) {
+        ug = p.user_group_name;
+        dl.appendChild(document.createElement("dt")).innerText = `${p.user_group_name}: ${PERM[p.access]}`;
+      }
+      dl.appendChild(document.createElement('dd')).innerText = p.username;
+    })
   }
 }
 

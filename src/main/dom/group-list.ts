@@ -59,7 +59,9 @@ class GroupList extends HTMLElement {
   }
 
   get memogroup() {
-    const sel = parseInt(this._getSelect().value);
+    const id = this._getSelect().value;
+    konsole.log(`group-list return memogroup for memogroup_id ${id}`);
+    const sel = parseInt(id);
     return this._groups.find((e) => e.id === sel);
   }
 

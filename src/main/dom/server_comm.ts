@@ -13,6 +13,7 @@ import {
   IdName,
   ServerMemoTitle,
   ServerMemoReply,
+  PermissionDetailLine,
 } from "./memo_interfaces.js";
 import * as events from "./events.js";
 import { merge } from "./diff_match_patch_uncompressed.js";
@@ -29,7 +30,7 @@ import { MemoEditor } from "./memo-editor.js";
  * @param {Memo} memo body of the memo
  */
 export const save_to_server = async (memo: Memo): Promise<ServerMemoReply> => {
-  konsole.log(`Saving to server memo ${memo.id}, size ${memo.text.length}`);
+  konsole.log(`Saving to server memo ${memo.id}, size ${memo.text.length}, memo_group ${memo?.memogroup?.id}`);
   const memogroup = memo.memogroup ? `group_id=${memo.memogroup.id}&` : "";
   const memoId = memo.id < 0 ? "" : `memoId=${memo.id}&`;
   const text = `text=${encodeURIComponent(memo.text)}&`;
@@ -201,3 +202,18 @@ export const read_memo_groups = async (): Promise<IdName[]> => {
     message: `Failed to fetch memogroups`,
   };
 };
+
+export const get_explicit_permission = async(memogroup_id: number): Promise<PermissionDetailLine[]> => {
+  try {
+    const server_response = await fetch(
+      `/organizator/explicit_permissions/${memogroup_id}?request.preventCache=${+new Date()}`,
+      get_options
+    );
+    if (server_response.status === 200) {
+      const explicit_permissions = await server_response.json();
+      return explicit_permissions;
+    }
+  } catch(e) {
+    konsole.log("Failed to fetch explicit permissions, error", e);
+  }
+}

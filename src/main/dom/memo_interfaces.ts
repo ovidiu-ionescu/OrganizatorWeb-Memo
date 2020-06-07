@@ -83,3 +83,17 @@ export interface HasType {
   type: string;
 }
 
+export interface GroupList {
+  memogroup: IdName;
+}
+
+// "memo_group_id":2,"memo_group_name":"Mihaela","user_group_id":1,"user_group_name":"Ionescu","user_id":1,"username":"ovidiu","access":2
+export interface PermissionDetailLine {
+  memo_group_id:   number;
+  memo_group_name: string;
+  user_group_id:   number;
+  user_group_name: string;
+  user_id:         number;
+  username:        string;
+  access:          number;
+}

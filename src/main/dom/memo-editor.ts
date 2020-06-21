@@ -87,6 +87,9 @@ const template = `
       #presentation  a {
         color: steelblue;
       }
+      #presentation img {
+        max-width: 100%;
+      }
       #container {
         position: relative;
         margin: 5px 2px 10px 2px;
@@ -176,7 +179,8 @@ const template = `
       <img-inline-svg id="link_button" src="/images/ic_link_48px.svg"></img-inline-svg>
       <img-inline-svg id="table_button" src="/images/border_all-white-48dp.svg"></img-inline-svg>
       <img-inline-svg id="crypto_button" src="/images/enhanced_encryption-white-48dp.svg"></img-inline-svg>
-      <span style="display: inline-block; width: 48px;"></span>
+      <img-inline-svg id="upload_button" src="/images/publish-white-48dp.svg"></img-inline-svg>
+      <input type="file" id="file_upload" style="display: none">
       <img-inline-svg id="save_all_button" src="/images/save_alt-24px.svg"></img-inline-svg>
     </nav>
     <div id="edit_meta">
@@ -242,6 +246,7 @@ export class MemoEditor extends HTMLElement {
   private _user: IdName;
   private _timestamp: number;
   private _readonly: boolean;
+  private _uploading: boolean;
 
   constructor() {
     super();
@@ -428,6 +433,32 @@ export class MemoEditor extends HTMLElement {
       }
     });
 
+    this.$.upload_button.addEventListener('click', (event) => {
+      if(this._uploading) {
+        konsole.log('upload already in progress, debouncing');
+        return;
+      }
+      this._uploading = true;
+      this.$.file_upload.click();
+      setTimeout(() => this._uploading = false, 2000);
+    });
+
+    this.$.file_upload.addEventListener('change', async (event) => {
+      let filename: String;
+      for(let i = 0; i < 3 && !filename; i++) {
+        if(i) {
+          konsole.log(`Attempt ${i + 1} to upload file`);
+        }
+        filename = await server_comm.upload_file(this.$.file_upload, this.$.edit_memogroup.value);
+      }
+      if(!filename) {
+        konsole.error(`will not create a link, upload did not succeed`);
+        return;
+      }
+    const editor = this.$.source;
+      editor.value = `${editor.value}\n![file](/files/${filename})`;
+    });
+
     // listen to saving events
     document.addEventListener(events.SAVING_EVENT, (event) => {
       konsole.log("Received saving event", event);
@@ -577,6 +608,7 @@ export class MemoEditor extends HTMLElement {
     window.history.replaceState(null, "", `/memo/${this._memoId}`);
     this.memogroup = null;
     this._user = null;
+    this.$.edit_user.innerText = "";
     this._timestamp = 0;
     this.$.source.value = "";
     this.$.edit_memogroup.value = "-1";
@@ -609,7 +641,7 @@ export class MemoEditor extends HTMLElement {
     this._memogroup = memo.memogroup;
     this._user = memo.user;
     this.value = memo.text;
-    this.$.edit_user.innerText = (memo.user && memo.user.name) || "";
+    this.$.edit_user.innerText = memo?.user?.name ?? "";
     if (memo.memogroup) {
       this.$.edit_memogroup.value = memo.memogroup.id.toString();
     } else {

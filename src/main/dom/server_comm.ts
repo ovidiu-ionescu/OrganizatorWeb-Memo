@@ -217,3 +217,39 @@ export const get_explicit_permission = async(memogroup_id: number): Promise<Perm
     konsole.log("Failed to fetch explicit permissions, error", e);
   }
 }
+
+export const upload_file = async(file_input: HTMLInputElement, memogroup_id: string): Promise<String> => {
+  const formData = new FormData();
+  const file = file_input.files[0];
+  if(!file) {
+    konsole.error(`nothing to upload`);
+    return;
+  }
+  konsole.log(`uploading ${file.name}`);
+  if(memogroup_id) {
+    formData.append('memo_group_id', `${memogroup_id}`);
+  }
+  formData.append('myFile', file);
+  formData.append('end_parameter', '2');
+
+  const server_response = await fetch('/organizator/upload', {
+    method: 'PUT',
+    body: formData
+  });
+
+  if (server_response.status === 200) {
+    const json = await server_response.json();
+    const filename = json.filename;
+    konsole.log(`Uploaded ${file.name} to server, received new id ${filename ? filename : JSON.stringify(json)}`);
+    // remove the selected file
+    // file_input.value = "";
+    // if(file_input.files.length > 0) {
+    //   konsole.error(`Failed to empty the file list`);
+    // }
+
+    return filename;
+  } else {
+    konsole.error(`Failed to upload file, server status: ${server_response.status}`);
+    return;
+  }
+}

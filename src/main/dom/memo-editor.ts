@@ -90,6 +90,9 @@ const template = `
       #presentation img {
         max-width: 100%;
       }
+      #presentation pre code {
+        color: yellow;
+      }
       #container {
         position: relative;
         margin: 5px 2px 10px 2px;

@@ -228,7 +228,7 @@ async function loadMemoTitles(force_reload?: boolean) {
       const new_memos = await db.get_new_memos();
       responseJson.memos = [...new_memos, ...responseJson.memos];
       await db.general_store_put("user", responseJson.user);
-      displayMemoTitles(responseJson, false);
+      displayMemoTitles(responseJson, false, false);
       //console.log(responseJson);
       return;
     } else {
@@ -246,6 +246,7 @@ async function loadMemoTitles(force_reload?: boolean) {
       memo: await db.general_store_get("user"),
       memos: await db.get_all_memos(),
     },
+    false,
     false
   );
 }
@@ -261,15 +262,11 @@ const make_memotitle_link_id = (id: number): string => `memo_title_link_${id}`;
  */
 const displayMemoTitles = async (
   responseJson: ServerMemoList,
-  auto_open: boolean
+  auto_open: boolean,
+  extra_info: boolean
 ) => {
   const dest = document.getElementById("memoTitlesList");
   dest.innerText = "";
-
-  const access_times = (await db.access_times()).reduce((a, t) => {
-    a[t.id] = t.last_access;
-    return a;
-  }, {});
 
   memo_processing
     .make_title_list(responseJson.memos, await db.access_times())
@@ -277,7 +274,11 @@ const displayMemoTitles = async (
       const a = document.createElement("a");
       a.style.display = "block";
       a.href = `/memo/${memo.id}`;
-      a.innerText = memo.title;
+      if(extra_info) {
+        a.innerText = `${memo.title} #${memo.id} u:${memo.userId || ''} g:${memo.group_id || ''}`;
+      } else {
+        a.innerText = memo.title;
+      }
       a.id = make_memotitle_link_id(memo.id);
       return a;
     })
@@ -285,7 +286,7 @@ const displayMemoTitles = async (
       dest.appendChild(memo);
     });
 
-  if (dest.childElementCount === 1) {
+  if (dest.childElementCount === 1 && auto_open) {
     dest.firstElementChild.dispatchEvent(
       new CustomEvent("click", { bubbles: true })
     );
@@ -308,15 +309,34 @@ document.addEventListener(events.MEMO_DELETED, (evt: CustomEvent) => {
  * Do a search on the server. If no criteria is present just fetch all titles
  */
 export async function searchMemos() {
-  const criteria = (<HTMLInputElement>document.getElementById("searchCriteria"))
-    .value;
+  const criteria = (<HTMLInputElement>document.getElementById("searchCriteria")).value;
   if (!criteria) {
     konsole.log("No criteria supplied, just fetch everything");
     return loadMemoTitles(true);
   }
 
-  if (criteria === "$$$drop local cache") {
-    window.indexedDB.deleteDatabase(db.DBName);
+  switch(criteria) {
+    case "$$$drop local cache":
+      window.indexedDB.deleteDatabase(db.DBName);
+      return;
+
+    case "$$$show dirty memos":
+      displayMemoTitles({memo: null, memos: memo_processing.cache_memos_to_server_titles(await db.unsaved_memos())}, false, true);
+      return;
+
+    case "$$$show new memos":
+      displayMemoTitles({memo: null, memos: await db.get_new_memos()}, false, true);
+      return;
+
+    case "$$$show cached memos":
+      displayMemoTitles({memo: null, memos: await db.get_all_memos()}, false, true);
+      return;
+  }
+
+  const p1 = criteria.match(/^\$\$\$drop memo (-?\d+)$/);
+  if(p1) {
+    db.delete_memo(parseInt(p1[1]));
+    displayMemoTitles({memo: null, memos: memo_processing.cache_memos_to_server_titles(await db.unsaved_memos())}, false, true);
     return;
   }
 
@@ -328,6 +348,6 @@ export async function searchMemos() {
     }
   );
   const responseJson = await response.json();
-  displayMemoTitles(responseJson, true);
+  displayMemoTitles(responseJson, true, false);
   //console.log(responseJson);
 }

@@ -20,7 +20,7 @@ import * as events from "./events.js";
 import "./img-inline-svg.js";
 import "./group-list.js";
 import * as memo_processing from "./memo_processing.js";
-import { alignedText } from "./util.js";
+import { alignedText, digestMessage } from "./util.js";
 
 import init, {
   concatenate,
@@ -250,6 +250,7 @@ export class MemoEditor extends HTMLElement {
   private _timestamp: number;
   private _readonly: boolean;
   private _uploading: boolean;
+  private _digest: string;
 
   constructor() {
     super();
@@ -582,15 +583,17 @@ export class MemoEditor extends HTMLElement {
   async save_local_only(event: HasType) {
     const cause = (event && event.type) || "no event supplied";
     if (!this._memoId) {
-      konsole.log(
-        "save_local_only, triggered by",
-        cause,
-        "; no memo in the editor, nothing to save"
-      );
+      konsole.log("save_local_only, triggered by", cause, "; no memo in the editor, nothing to save");
+      return;
+    }
+    const current_memo = await this.get_memo();
+    const digest = await digestMessage(current_memo.text);
+    if(this._digest === digest) {
+      konsole.log("save_local_only, triggered by", cause, "; digest identical, no need to save");
       return;
     }
     konsole.log(`save_local_only ${this._memoId}, triggered by: ${cause}`);
-    const saved_memo = await db.save_local_only(await this.get_memo());
+    const saved_memo = await db.save_local_only(current_memo);
     if (saved_memo.timestamp > this._timestamp) {
       konsole.log(
         `save_local_only ${this._memoId}, save happened, trigger dirty green, current timestamp: ${new Date(this._timestamp).toIsoString()}, cache timestamp ${new Date(saved_memo.timestamp).toIsoString()}`
@@ -598,6 +601,7 @@ export class MemoEditor extends HTMLElement {
       this._timestamp = saved_memo.timestamp;
       this._display_timestamp();
       events.save_all_status(events.SaveAllStatus.Dirty);
+      this._digest = digest;
     } else {
       konsole.log(
         `Save local of memo ${this._memoId} did not happen, we didn't get a new timestamp, old ${this._timestamp}, new ${saved_memo.timestamp}`
@@ -616,6 +620,7 @@ export class MemoEditor extends HTMLElement {
     this.$.source.value = "";
     this.$.edit_memogroup.value = "-1";
     this._readonly = false;
+    this._digest = null;
     this._show_editor();
   }
 
@@ -644,6 +649,8 @@ export class MemoEditor extends HTMLElement {
     this._memogroup = memo.memogroup;
     this._user = memo.user;
     this.value = memo.text;
+    // maybe just keeping a full copy of the text is better
+    this._digest = await digestMessage(memo.text);
     this.$.edit_user.innerText = memo?.user?.name ?? "";
     if (memo.memogroup) {
       this.$.edit_memogroup.value = memo.memogroup.id.toString();

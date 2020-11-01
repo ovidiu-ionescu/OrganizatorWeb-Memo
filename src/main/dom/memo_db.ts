@@ -219,6 +219,9 @@ export const save_local_only = async (memo: Memo): Promise<Memo> => {
   }
 };
 
+/**
+ * Returns the last access time for all memos in the local cache
+ */
 export const access_times = async () => {
   const db = await get_db();
   const transaction = db.transaction(["memo_access"], "readonly");

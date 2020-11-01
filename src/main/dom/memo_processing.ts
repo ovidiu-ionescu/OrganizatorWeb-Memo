@@ -199,7 +199,7 @@ export const make_server_memo_title = (
   if (!text) {
     konsole.log("A degenerate memo", cache_memo.id);
   } else {
-    title = text.split("\n")[0];
+    title = text.split(/\n|\r/)[0];
   }
   const result = {
     group_id,
@@ -226,3 +226,11 @@ export const should_save_memo_to_server = (cache_memo: CacheMemo): boolean => {
   if(to_zero(cache_memo.local.timestamp) > to_zero(cache_memo.server.timestamp)) return true;
   return false;
 }
+
+/**
+ * Make a list of memo titles from cached memos. Useful to show what is in cache
+ * and what is not saved
+ * @param cache_memos 
+ */
+export const cache_memos_to_server_titles = (cache_memos: CacheMemo[]): ServerMemoTitle[] =>
+  cache_memos.map(make_server_memo_title);

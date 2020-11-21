@@ -18,6 +18,7 @@ import {
 
 import * as events from "./events.js";
 import * as memo_processing from "./memo_processing.js";
+import { merge } from "./diff_match_patch_uncompressed.js";
 import konsole from "./console_log.js";
 
 export const DBName = "MemoDatabase";
@@ -157,34 +158,38 @@ export const read_memo = async (id: number) => {
 export const save_memo_after_fetching_from_server = async (
   server_memo_reply: ServerMemoReply
 ): Promise<Memo> => {
-  konsole.log(
-    "Save memo after fetching from server",
-    server_memo_reply.memo.id
-  );
   // sanitize the input first
-  const memo = memo_processing.server2local(server_memo_reply);
+  const server_memo = memo_processing.server2local(server_memo_reply);
+  konsole.log("Save memo after fetching from server", server_memo);
   const transaction = await get_memo_write_transaction();
 
-  await update_access_time(transaction, memo.id);
+  await update_access_time(transaction, server_memo.id);
 
-  const existing_db_memo = await raw_read_memo(
-    transaction,
-    server_memo_reply.memo.id
-  );
+  const existing_db_memo = await raw_read_memo(transaction, server_memo.id);
   if (existing_db_memo) {
-    // if the local one is more recent, skip the server one and return local
-    if (memo_processing.first_more_recent(existing_db_memo.local, memo)) {
-      konsole.log(
-        `Local memo ${memo.id} has timestamp ${existing_db_memo.local.timestamp} more recent than server timestamp ${memo.timestamp}`
-      );
+    // if the server memo is not newer than the memo last fetched then skip the server one and return local
+    if (!memo_processing.first_more_recent(server_memo, existing_db_memo.server)) {
+      konsole.log(`server memo ${server_memo.id} timestamp ${server_memo.timestamp} is not more recent than cached memo ancestor ${existing_db_memo.server.timestamp}`);
       return existing_db_memo.local;
     } else {
-      await raw_write_memo(transaction, memo_processing.make_cache_memo(memo));
-      return memo;
+      if (memo_processing.first_more_recent(existing_db_memo.local, existing_db_memo.server)) {
+        konsole.log(`both local and remote have been modified, we need to merge`);
+
+        const text = merge(existing_db_memo.server.text, existing_db_memo.local.text, server_memo.text);
+        existing_db_memo.local.text = text;
+        existing_db_memo.local.timestamp = (+ new Date);
+        existing_db_memo.server = server_memo;
+        await raw_write_memo(transaction, existing_db_memo);
+        return existing_db_memo.local;
+      } else {
+        konsole.log(`local memo has not been modified, remote will replace it`);
+        await raw_write_memo(transaction, memo_processing.make_cache_memo(server_memo));
+        return server_memo;
+      }
     }
   } else {
-    await raw_write_memo(transaction, memo_processing.make_cache_memo(memo));
-    return memo;
+    await raw_write_memo(transaction, memo_processing.make_cache_memo(server_memo));
+    return server_memo;
   }
 };
 

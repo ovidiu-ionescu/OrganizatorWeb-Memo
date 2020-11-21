@@ -3,6 +3,7 @@ pkg
 *.png
 Old
 build
+build_worker
 types
 node_modules
 *.swp

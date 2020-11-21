@@ -270,13 +270,6 @@ export class MemoEditor extends HTMLElement {
       this.$[e.getAttribute("id")] = e;
     });
 
-    // this.$.source.style.display = 'none';
-    // this.$.source.addEventListener('input', () => {
-    //   this._resizeTextArea();
-    // });
-
-    // this.$.source.addEventListener('change', () => this.value = this.$.source.value);
-
     // show the password dialog
     this.$.password_button.addEventListener("click", () => {
       //this.$.password_dialog.style.display = this.$.password_dialog.style.display === 'none' ? 'table' : 'none';
@@ -378,10 +371,6 @@ export class MemoEditor extends HTMLElement {
       const start_offset = this.$.source.selectionStart;
       const end_offset = this.$.source.selectionEnd;
       let text = "";
-      // Can we read the clipboard content?
-      // if(start_offset === end_offset) {
-      //   text = await navigator.clipboard.readText();
-      // }
 
       let s = this.$.source.value;
       try {

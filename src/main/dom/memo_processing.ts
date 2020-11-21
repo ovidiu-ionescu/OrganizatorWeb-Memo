@@ -25,6 +25,44 @@ function XOR(a: any, b: any) {
 }
 
 /**
+ * Extracts the title from the memo text 
+ * @param memo
+ */
+export const extract_title = (memo: Memo): string => {
+  if(!memo) {
+    return 'null memo';
+  }
+  if(!memo.text) {
+    konsole.log("A degenerate memo", memo.id);
+    return 'No title found';
+  }
+  return memo.text.split(/\n|\r/)[0];
+}
+
+const MEMO_PROTOTYPE = {
+  toString() {
+    return `「memo ${this.id}: ${extract_title(this)}」`;
+  }
+}
+
+export const make_server_memo_title = (
+  cache_memo: CacheMemo
+): ServerMemoTitle => {
+  const memo_group = cache_memo.local.memogroup;
+  const group_id = memo_group && memo_group.id;
+  const userId = cache_memo.local.user && cache_memo.local.user.id;
+  const text = cache_memo.local.text;
+  let title = extract_title(cache_memo.local);
+  const result = {
+    group_id,
+    id: cache_memo.id,
+    title,
+    userId,
+  };
+  return result;
+};
+
+/**
  * Change the structure returned by the server into the one used by the client
  * @param {ServerMemo} server_memo
  */
@@ -35,14 +73,15 @@ export const server2local = (server_memo_reply: ServerMemoReply): Memo => {
   const text: string = `${server_memo.title}${server_memo.memotext}`
     .split("\r")
     .join("");
-  const memo: Memo = {
-    id: server_memo.id,
-    text: text,
-    memogroup: server_memo.memogroup,
-    timestamp: server_memo.savetime || undefined,
-    user: server_memo.user,
-    readonly: server_memo.user.id !== server_memo_reply.user.id,
-  };
+  const memo = Object.create(MEMO_PROTOTYPE);
+  memo.id = server_memo.id;
+  memo.text = text;
+  memo.memogroup = server_memo.memogroup;
+  memo.timestamp = server_memo.savetime || undefined;
+  memo.user = server_memo.user;
+  memo.readonly = server_memo.user.id !== server_memo_reply.user.id;
+
+  konsole.log(`OI: ${memo}`);
   return memo;
 };
 
@@ -106,10 +145,7 @@ export const first_more_recent = (first: Memo, second: Memo): boolean => {
   if (!second.timestamp) {
     return true;
   }
-  if (first.timestamp > second.timestamp) {
-    return true;
-  }
-  return false;
+  return first.timestamp > second.timestamp;
 };
 
 export const make_cache_memo = (
@@ -186,28 +222,6 @@ export const toggle_checkbox = (text: string, index: number): string => {
       );
     }
   }
-};
-
-export const make_server_memo_title = (
-  cache_memo: CacheMemo
-): ServerMemoTitle => {
-  const memo_group = cache_memo.local.memogroup;
-  const group_id = memo_group && memo_group.id;
-  const userId = cache_memo.local.user && cache_memo.local.user.id;
-  const text = cache_memo.local.text;
-  let title = "No title found";
-  if (!text) {
-    konsole.log("A degenerate memo", cache_memo.id);
-  } else {
-    title = text.split(/\n|\r/)[0];
-  }
-  const result = {
-    group_id,
-    id: cache_memo.id,
-    title,
-    userId,
-  };
-  return result;
 };
 
 /**

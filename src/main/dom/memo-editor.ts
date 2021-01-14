@@ -156,6 +156,13 @@ const template = `
         display: flex;
         justify-content: space-between;
       }
+      #presentation table, #presentation th, #presentation td {
+        border: 1px solid grey;
+        border-collapse: collapse;
+      }
+      #presentation th, #presentation td {
+        padding: 3px;
+      }
       #presentation p {
 /*
         overflow-wrap: anywhere;

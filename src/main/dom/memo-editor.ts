@@ -222,12 +222,9 @@ declare global {
 }
 
 Date.prototype.toIsoString = function () {
-  var tzo = -this.getTimezoneOffset(),
+  let tzo = -this.getTimezoneOffset(),
     dif = tzo >= 0 ? "+" : "-",
-    pad = function (num) {
-      var norm = Math.floor(Math.abs(num));
-      return (norm < 10 ? "0" : "") + norm;
-    };
+    pad = (num) => num.toString().padStart(2, '0');
   return (
     this.getFullYear() +
     "-" +
@@ -356,51 +353,47 @@ export class MemoEditor extends HTMLElement {
       this.$.source.value = s;
     });
 
+    const insertText = (process) => {
+      const editor = this.$.source;
+      const start_offset = editor.selectionStart;
+      const end_offset = editor.selectionEnd;
+      const toInsert = (process instanceof Function) ?
+        process(editor.value.substring(editor.selectionStart, editor.selectionEnd))
+        : process;
+      if(toInsert) {
+        let s = editor.value;
+        editor.value = s.substring(0, start_offset) + toInsert + s.substring(end_offset);
+        editor.selectionStart = start_offset;
+        editor.selectionEnd = start_offset + toInsert.length;
+      }
+    };
+
     this.$.today_button.addEventListener("click", () => {
       const today = new Date().toISOString().substring(0, 10);
-      const start_offset = this.$.source.selectionStart;
-      let s = this.$.source.value;
-      s =
-        s.slice(0, start_offset) +
-        `\n_${today}_  \n\n\n` +
-        s.slice(start_offset);
-      this.$.source.value = s;
+      insertText(`\n_${today}_  \n\n\n`);
     });
 
     this.$.checkbox_button.addEventListener("click", async () => {
-      const start_offset = this.$.source.selectionStart;
-      let s = this.$.source.value;
-      s = s.slice(0, start_offset) + "- [ ] " + s.slice(start_offset);
-      this.$.source.value = s;
+      insertText("- [ ] ");
     });
 
     this.$.link_button.addEventListener("click", async () => {
-      const start_offset = this.$.source.selectionStart;
-      const end_offset = this.$.source.selectionEnd;
-      let text = "";
-
-      let s = this.$.source.value;
-      try {
-        text = new URL(s.slice(start_offset, end_offset)).hostname;
-      } catch (error) {}
-      s = s.slice(0, end_offset) + ")" + s.slice(end_offset);
-      s = s.slice(0, start_offset) + `[${text}](` + s.slice(start_offset);
-      this.$.source.value = s;
+      insertText(s => {
+        let text = "";
+        try {
+          text = new URL(s).hostname;
+        } catch (error) {};
+        return `[${text}](${s})`;
+      });
     });
 
     this.$.table_button.addEventListener("click", async () => {
-      const start_offset = this.$.source.selectionStart;
-      let s = this.$.source.value;
-      s =
-        s.slice(0, start_offset) +
-        alignedText`
+      insertText(alignedText`
       | head1 | head2 |  | 
       |:---|---|---:|
       | cell 1 | cell2 |  |
       |  |  |  |
-      ` +
-        s.slice(start_offset);
-      this.$.source.value = s;
+      `);
     });
 
     this.$.save_all_button.addEventListener("click", async () => {
@@ -412,13 +405,8 @@ export class MemoEditor extends HTMLElement {
     this.$.source.addEventListener("paste", (event) => {
       const text = event.clipboardData.getData("text/plain");
       if (!text.startsWith("http://") && !text.startsWith("https://")) return;
-      const editor = this.$.source;
       event.preventDefault();
-      const link_text =
-        editor.value.slice(0, editor.selectionStart) +
-        `[${new URL(text).hostname}](${text})` +
-        editor.value.slice(editor.selectionEnd);
-      editor.value = link_text;
+      insertText(`[${new URL(text).hostname}](${text})`);
     });
 
     this.$.source.addEventListener("click", (event) => {
@@ -430,6 +418,7 @@ export class MemoEditor extends HTMLElement {
       );
       if (new_text) {
         editor.value = new_text;
+        editor.selectionStart = interestPoint;
       }
     });
 

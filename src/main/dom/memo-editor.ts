@@ -370,7 +370,7 @@ export class MemoEditor extends HTMLElement {
 
     this.$.today_button.addEventListener("click", () => {
       const today = new Date().toISOString().substring(0, 10);
-      insertText(`\n_${today}_  \n\n\n`);
+      insertText(`\n_${today}_  \n`);
     });
 
     this.$.checkbox_button.addEventListener("click", async () => {

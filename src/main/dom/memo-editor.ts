@@ -419,6 +419,7 @@ export class MemoEditor extends HTMLElement {
       if (new_text) {
         editor.value = new_text;
         editor.selectionStart = interestPoint;
+        editor.selectionEnd = interestPoint;
       }
     });
 

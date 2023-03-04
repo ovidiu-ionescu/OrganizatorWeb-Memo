@@ -312,7 +312,7 @@ export class MemoEditor extends HTMLElement {
       if (this._edit) {
         this.value = clear_text;
       } else {
-        this.$.presentation.innerHTML = process_markdown(clear_text, 16);
+        this.$.presentation.innerHTML = process_markdown(clear_text, 0);
       }
     });
 

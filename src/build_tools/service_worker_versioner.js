@@ -23,7 +23,7 @@ const get_next_version = () => {
   let version = parseInt(fs.readFileSync(version_file, "utf8"), 10) + 1;
   console.log("Incrementing versions to", version);
 
-  fs.writeFileSync(version_file, version);
+  fs.writeFileSync(version_file, version.toString());
 
   return version;
 };

@@ -5,7 +5,7 @@ import { sendMessageEvent } from '../../../main/dom/events.js';
 
 describe("Testing the database functions", () => {
   before(() => {
-    return new Promise((resolve) => {
+    return new Promise<void>((resolve) => {
       const dbDeleteRequest = window.indexedDB.deleteDatabase(db.DBName);
       dbDeleteRequest.onsuccess = event =>  {
         resolve();
